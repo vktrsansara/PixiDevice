@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>PixiDevice</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+      integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h2 id="page-title">Подключение</h2>
+    </header>
+
+    <main id="content">
+      <section id="tab-connection" class="tab-content active">
+        <div class="discovery-header">
+          <h2>Устройства в сети</h2>
+          <button id="btn-scan" class="icon-btn">
+            <i class="fa-solid fa-sync"></i>
+          </button>
+        </div>
+        <div id="device-list" class="device-list">
+          <div class="status-msg">
+            Нажмите на кнопку поиска для сканирования сети...
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-pov" class="tab-content">
+        <h2>POV Редактор</h2>
+        <!-- Содержимое вкладки POV -->
+      </section>
+
+      <section id="tab-player" class="tab-content">
+        <h2>Плеер</h2>
+        <!-- Содержимое вкладки Плеер -->
+      </section>
+
+      <section id="tab-settings" class="tab-content">
+        <h2>Настройки</h2>
+        <!-- Содержимое вкладки Настройки -->
+      </section>
+    </main>
+
+    <footer id="bottom-nav">
+      <div
+        class="nav-item active"
+        data-tab="tab-connection"
+        data-title="Подключение"
+      >
+        <i class="fa-solid fa-wifi"></i>
+        <span>Подключение</span>
+      </div>
+      <div class="nav-item" data-tab="tab-pov" data-title="POV">
+        <i class="fa-solid fa-image"></i>
+        <span>POV</span>
+      </div>
+      <div class="nav-item" data-tab="tab-player" data-title="Плеер">
+        <i class="fa-solid fa-play"></i>
+        <span>Плеер</span>
+      </div>
+      <div class="nav-item" data-tab="tab-settings" data-title="Настройки">
+        <i class="fa-solid fa-gear"></i>
+        <span>Настройки</span>
+      </div>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
