@@ -220,6 +220,7 @@ export const UI = {
             settings.wifi.sta_pass = "12345678"; // Default per requirement
             settings.wifi.id = parseInt(document.getElementById('device_id_client').value);
             settings.wifi.sta_timeout = parseInt(document.getElementById('sta_timeout_client').value);
+            settings.wifi.sta_dhcp = true; // Принудительно включаем DHCP для Клиента
             settings.leds.count_pixel = parseInt(document.getElementById('count_pixel_client').value);
         }
 
