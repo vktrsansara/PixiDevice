@@ -3,6 +3,7 @@ import { UI } from './modules/ui.js';
 import { Connect } from './modules/connect.js';
 import { DeviceConfig } from './modules/device.config.js';
 import { POVManager } from './modules/pov.manager.js';
+import { CustomSelect } from './modules/custom.select.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     Logger.log('App Initializing...');
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.initDeviceIdOptions();
     DeviceConfig.init();
     POVManager.init();
+    CustomSelect.init();
 
     // --- Discovery Logic ---
     const startScan = () => {
@@ -43,8 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (ip) {
                     Logger.log(`Selected device: ${ip}`);
                     POVManager.setMasterIp(ip);
-                    // Switch to POV tab after selecting a device
-                    UI.switchToTab('tab-pov', 'POV');
+                    // POV gallery will load when user switches to tab or if already there
                     POVManager.loadGallery();
                 } else {
                     Logger.log('Device unselected');
