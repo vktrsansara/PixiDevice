@@ -11,24 +11,26 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.initDeviceIdOptions();
     DeviceConfig.init();
 
-    // --- Validation Helpers (Moved to DeviceConfig) ---
+    // --- Discovery Logic ---
+    const startScan = () => {
+        Logger.log('Starting device discovery...');
+        UI.setStatus('Поиск устройств в сети...');
+        UI.setScanningState(true);
+        Connect.startDiscovery();
+
+        // Auto-stop scanning after 10 seconds
+        setTimeout(() => {
+            Connect.stopDiscovery();
+            UI.setScanningState(false);
+        }, 10000);
+    };
 
     // Initialize Connection / Discovery
     const btnScan = document.getElementById('btn-scan');
-    
     if (btnScan) {
         btnScan.addEventListener('click', () => {
             Logger.log('Scan button clicked');
-            UI.setStatus('Поиск устройств в сети...');
-            UI.setScanningState(true);
-            
-            Connect.startDiscovery();
-
-            // Auto-stop scanning after 10 seconds
-            setTimeout(() => {
-                Connect.stopDiscovery();
-                UI.setScanningState(false);
-            }, 10000);
+            startScan();
         });
     }
 
@@ -44,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         );
     });
+
+    // Auto-scan on startup
+    startScan();
 
     Logger.log('App Ready');
 });
