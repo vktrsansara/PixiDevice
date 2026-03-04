@@ -66,16 +66,28 @@ export const UI = {
                         <input type="checkbox" class="device-selector" data-ip="${dev.ip}" ${POVManager && POVManager.masterIp === dev.ip ? 'checked' : ''}>
                         <label>Выбрать</label>
                     </div>
-                    <button class="icon-btn-small btn-config" data-ip="${dev.ip}" data-hostname="${dev.hostname || 'Unknown'}">
-                        <i class="fa-solid fa-gears"></i>
-                    </button>
+                    <div class="device-actions">
+                        <button class="icon-btn-small btn-download" data-ip="${dev.ip}">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button class="icon-btn-small btn-config" data-ip="${dev.ip}" data-hostname="${dev.hostname || 'Unknown'}">
+                            <i class="fa-solid fa-gears"></i>
+                        </button>
+                    </div>
                 </div>
             `;
             
             // Whole card click for connection (optional, keeping for backward compatibility)
             div.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-config') || e.target.closest('.device-selector')) return;
+                if (e.target.closest('.btn-config') || e.target.closest('.device-selector') || e.target.closest('.btn-download')) return;
                 onSelect(dev.ip);
+            });
+
+            // Download button click
+            const btnDownload = div.querySelector('.btn-download');
+            btnDownload.addEventListener('click', () => {
+                const event = new CustomEvent('device:download', { detail: { ip: dev.ip } });
+                window.dispatchEvent(event);
             });
 
             // Selector change

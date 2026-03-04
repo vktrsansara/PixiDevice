@@ -14,11 +14,14 @@ import android.webkit.WebViewClient;
 import android.view.View;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.view.WindowCompat;
+import android.content.Intent;
+import androidx.annotation.Nullable;
 
 public class MainActivity extends AppCompatActivity {
 
     private WebView myWebView;
     private NsdHelper nsdHelper;
+    private ImageManager imageManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +47,10 @@ public class MainActivity extends AppCompatActivity {
         nsdHelper = new NsdHelper(this, myWebView);
         myWebView.addJavascriptInterface(nsdHelper, "AndroidDiscovery");
 
+        // Initialize Image Manager and inject JS Interface
+        imageManager = new ImageManager(this, myWebView);
+        myWebView.addJavascriptInterface(imageManager, "AndroidImage");
+
         // Hide system bars for immersive fullscreen
         WindowInsetsControllerCompat windowInsetsController =
                 WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
@@ -55,6 +62,14 @@ public class MainActivity extends AppCompatActivity {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             return insets; // Do not apply padding if we want true fullscreen
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (imageManager != null) {
+            imageManager.handleResult(requestCode, resultCode, data);
+        }
     }
 
     @Override

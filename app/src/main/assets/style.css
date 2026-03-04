@@ -374,6 +374,24 @@ footer {
     flex-grow: 1;
 }
 
+/* Upload Progress UI */
+.upload-progress-container {
+    height: 2px;
+    background-color: transparent;
+    width: 100%;
+    position: fixed;
+    bottom: 70px;
+    left: 0;
+    z-index: 1000;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: #f7768e; /* Pink (Tokyo Night Moon paletteish) */
+    transition: width 0.3s ease;
+}
+
 .icon-btn-small {
     background-color: var(--border-color);
     color: var(--fg-color);
@@ -386,6 +404,17 @@ footer {
     justify-content: center;
     cursor: pointer;
     margin-left: 10px;
+    flex-shrink: 0;
+}
+
+.device-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.btn-download {
+    color: var(--accent-color);
 }
 
 .hint {

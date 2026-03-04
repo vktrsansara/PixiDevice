@@ -38,6 +38,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle device download button
+    window.addEventListener('device:download', async (e) => {
+        const { ip } = e.detail;
+        Logger.log(`Download requested for ${ip}`);
+        
+        try {
+            // Fetch current LED count from device
+            const response = await fetch(`http://${ip}/get_settings`);
+            const settings = await response.json();
+            const ledCount = (settings.leds && settings.leds.count_pixel) || 32;
+            
+            if (window.AndroidImage) {
+                window.AndroidImage.pickImages(ip, ledCount);
+            } else {
+                Logger.error('AndroidImage interface not available');
+            }
+        } catch (err) {
+            Logger.error(`Failed to fetch device settings before upload: ${err}`);
+        }
+    });
+
+    // Handle upload progress from Java
+    window.addEventListener('upload:progress', (e) => {
+        const percent = e.detail;
+        const progressBar = document.getElementById('upload-progress-bar');
+        if (progressBar) {
+            progressBar.style.width = `${percent}%`;
+            if (percent >= 100 || percent <= 0) {
+                setTimeout(() => { progressBar.style.width = '0%'; }, 2000);
+            }
+        }
+    });
+
     // Handle discovered devices
     Connect.onDevicesUpdate((devices) => {
         UI.renderDeviceList(devices, 
