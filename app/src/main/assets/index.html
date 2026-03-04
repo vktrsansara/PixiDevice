@@ -50,6 +50,121 @@
         <h2>Настройки</h2>
         <!-- Содержимое вкладки Настройки -->
       </section>
+
+      <section id="tab-device-config" class="tab-content">
+        <div class="config-container">
+          <div class="input-group">
+            <label for="config-mode">Режим работы:</label>
+            <select id="config-mode">
+              <option value="0">Не определено</option>
+              <option value="1">Мастер</option>
+              <option value="2">Клиент</option>
+            </select>
+          </div>
+
+          <!-- Master Settings -->
+          <div id="master-settings" class="mode-settings" style="display: none">
+            <div class="input-group">
+              <label for="sta_ssid">Точка доступа:</label>
+              <input type="text" id="sta_ssid" placeholder="SSID" />
+            </div>
+            <div class="input-group">
+              <label for="sta_pass">Пароль:</label>
+              <input type="password" id="sta_pass" placeholder="Password" />
+            </div>
+            <div class="input-group">
+              <label for="sta_timeout_master">Таймаут подключения:</label>
+              <select id="sta_timeout_master">
+                <option value="30">30 сек.</option>
+                <option value="45">45 сек.</option>
+                <option value="60">1 мин.</option>
+                <option value="90">1 мин. 30 сек.</option>
+                <option value="120">2 мин.</option>
+              </select>
+            </div>
+            <div class="checkbox-group">
+              <input type="checkbox" id="sta_dhcp" checked />
+              <label for="sta_dhcp">DHCP:</label>
+            </div>
+            <div id="static-ip-settings" style="display: none">
+              <div class="input-group">
+                <label for="sta_ip">IP:</label>
+                <input type="text" id="sta_ip" placeholder="192.168.1.100" />
+              </div>
+              <div class="input-group">
+                <label for="sta_gateway">Gateway:</label>
+                <input type="text" id="sta_gateway" placeholder="192.168.1.1" />
+              </div>
+              <div class="input-group">
+                <label for="sta_mask">Mask:</label>
+                <input type="text" id="sta_mask" placeholder="255.255.255.0" />
+              </div>
+            </div>
+
+            <hr class="divider" />
+            <h3>Группа устройств:</h3>
+            <div class="input-group">
+              <select id="device_id_master"></select>
+            </div>
+
+            <hr class="divider" />
+            <h3>Для настройки клиентов</h3>
+            <div class="input-group with-btn">
+              <input type="text" id="master_hostname_display" readonly />
+              <button id="btn-copy-hostname" class="icon-btn-small">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+
+            <hr class="divider" />
+            <h3>Настройки дисплея</h3>
+            <div class="input-group">
+              <label for="count_pixel_master">Кол-во светодиодов:</label>
+              <input type="number" id="count_pixel_master" min="1" max="512" />
+            </div>
+          </div>
+
+          <!-- Client Settings -->
+          <div id="client-settings" class="mode-settings" style="display: none">
+            <div class="input-group">
+              <label for="client_master_ssid">Имя Мастера:</label>
+              <input
+                type="text"
+                id="client_master_ssid"
+                placeholder="Master SSID"
+              />
+            </div>
+            <p class="hint">Пароль по умолчанию: 12345678</p>
+
+            <hr class="divider" />
+            <h3>Группа устройств:</h3>
+            <div class="input-group">
+              <select id="device_id_client"></select>
+            </div>
+
+            <hr class="divider" />
+            <div class="input-group">
+              <label for="sta_timeout_client">Таймаут подключения:</label>
+              <select id="sta_timeout_client">
+                <option value="30">30 сек.</option>
+                <option value="45">45 сек.</option>
+                <option value="60">1 мин.</option>
+                <option value="90">1 мин. 30 сек.</option>
+                <option value="120">2 мин.</option>
+              </select>
+            </div>
+
+            <hr class="divider" />
+            <h3>Настройки дисплея</h3>
+            <div class="input-group">
+              <label for="count_pixel_client">Кол-во светодиодов:</label>
+              <input type="number" id="count_pixel_client" min="1" max="512" />
+            </div>
+          </div>
+
+          <button id="btn-save-settings" class="save-btn">Сохранить</button>
+        </div>
+      </section>
     </main>
 
     <footer id="bottom-nav">

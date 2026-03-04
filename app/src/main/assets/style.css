@@ -161,6 +161,107 @@ footer {
     gap: 8px;
 }
 
+.device-config-btn {
+    align-self: flex-end;
+}
+
+.device-config-btn i {
+    font-size: 1.2rem;
+}
+
+.config-container {
+    padding-bottom: 20px;
+}
+
+.input-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.input-group label {
+    font-size: 0.9rem;
+    color: var(--inactive-color);
+}
+
+.input-group input, .input-group select {
+    background-color: var(--header-bg);
+    border: 1px solid var(--border-color);
+    color: var(--fg-color);
+    padding: 10px;
+    border-radius: 5px;
+    outline: none;
+}
+
+.input-group input:focus, .input-group select:focus {
+    border-color: var(--accent-color);
+}
+
+.input-group input.invalid {
+    border-color: #f7768e;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.checkbox-group input {
+    width: 20px;
+    height: 20px;
+}
+
+.divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 20px 0;
+}
+
+.with-btn {
+    flex-direction: row;
+    align-items: center;
+}
+
+.with-btn input {
+    flex-grow: 1;
+}
+
+.icon-btn-small {
+    background-color: var(--border-color);
+    color: var(--fg-color);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.hint {
+    font-size: 0.8rem;
+    color: var(--inactive-color);
+    margin-bottom: 15px;
+}
+
+.save-btn {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 15px;
+    border-radius: 5px;
+    width: 100%;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
 .status-msg {
     text-align: center;
     color: var(--inactive-color);
