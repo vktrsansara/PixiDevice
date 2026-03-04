@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     POVManager.setMasterIp(null);
                 }
             },
-            (ip, hostname) => {
-                DeviceConfig.handleConfig(ip, hostname);
+            async (ip, hostname) => {
+                await DeviceConfig.handleConfig(ip, hostname);
             }
         );
     });
@@ -100,8 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Auto-scan on startup
-    startScan();
+    // Auto-scan on startup with a slight delay to ensure interfaces are bound
+    setTimeout(() => {
+        startScan();
+    }, 500);
 
     Logger.log('App Ready');
 });

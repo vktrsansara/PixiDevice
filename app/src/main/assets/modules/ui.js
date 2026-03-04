@@ -106,8 +106,16 @@ export const UI = {
 
             // Config button click
             const btnConfig = div.querySelector('.btn-config');
-            btnConfig.addEventListener('click', () => {
-                onConfig(dev.ip, dev.hostname || 'Unknown');
+            btnConfig.addEventListener('click', async () => {
+                const icon = btnConfig.querySelector('i');
+                const prevClass = icon.className;
+                icon.className = 'fa-solid fa-spinner fa-spin';
+                btnConfig.disabled = true;
+
+                await onConfig(dev.ip, dev.hostname || 'Unknown');
+
+                icon.className = prevClass;
+                btnConfig.disabled = false;
             });
 
             deviceList.appendChild(div);
@@ -148,9 +156,14 @@ export const UI = {
     updateModeForm(mode) {
         const masterSettings = document.getElementById('master-settings');
         const clientSettings = document.getElementById('client-settings');
+        const btnSave = document.getElementById('btn-save-settings');
         
         masterSettings.style.display = 'none';
         clientSettings.style.display = 'none';
+
+        if (btnSave) {
+            btnSave.disabled = (mode == 0);
+        }
 
         if (mode == 1) { // MASTER
             masterSettings.style.display = 'block';
@@ -169,7 +182,10 @@ export const UI = {
         const wifi = settings.wifi;
         const leds = settings.leds || {};
 
-        document.getElementById('config-mode').value = wifi.mode;
+        const modeSelect = document.getElementById('config-mode');
+        modeSelect.value = wifi.mode;
+        // Trigger change event for custom select sync
+        modeSelect.dispatchEvent(new Event('change'));
         this.updateModeForm(wifi.mode);
 
         // Master settings population

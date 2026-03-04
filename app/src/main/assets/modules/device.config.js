@@ -44,24 +44,25 @@ export const DeviceConfig = {
         }
     },
 
-    handleConfig(ip, hostname) {
+    async handleConfig(ip, hostname) {
         this.currentConfigIp = ip;
-        this.fetchSettings(ip, hostname);
+        await this.fetchSettings(ip, hostname);
     },
 
     async fetchSettings(ip, hostname) {
         try {
-            UI.setStatus(`Получение настроек ${hostname}...`);
-            const response = await fetch(`http://${ip}/get_settings`);
+            const response = await fetch(`http://${ip}/get_settings`, { signal: AbortSignal.timeout(5000) });
             if (response.ok) {
                 const settings = await response.json();
                 UI.populateDeviceSettings(settings, hostname);
                 UI.switchToTab('tab-device-config', hostname);
             } else {
                 Logger.log(`Failed to fetch settings: ${response.status}`);
+                alert(`Не удалось получить настройки с ${hostname}`);
             }
         } catch (err) {
             Logger.log(`Fetch settings error: ${err}`);
+            alert(`Ошибка при получении настроек с ${hostname}`);
         }
     },
 

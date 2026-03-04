@@ -444,6 +444,13 @@ footer {
     color: var(--bg-color);
 }
 
+.save-btn:disabled {
+    background-color: var(--inactive-color);
+    color: var(--bg-color);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .cancel-btn {
     background-color: var(--border-color);
     color: var(--fg-color);
