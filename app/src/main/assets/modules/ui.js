@@ -1,4 +1,5 @@
 import { Logger } from './dummy.js';
+import { POVManager } from './pov.manager.js';
 
 export const UI = {
     initTabs() {
@@ -60,17 +61,35 @@ export const UI = {
                     <i class="fa-solid fa-sitemap"></i>
                     <span> ${dev.ip}</span>
                 </div>
-                <div class="device-row" style="justify-content: flex-end;">
+                <div class="device-row" style="justify-content: space-between; align-items: center;">
+                    <div class="selection-group">
+                        <input type="checkbox" class="device-selector" data-ip="${dev.ip}" ${POVManager && POVManager.masterIp === dev.ip ? 'checked' : ''}>
+                        <label>Выбрать</label>
+                    </div>
                     <button class="icon-btn-small btn-config" data-ip="${dev.ip}" data-hostname="${dev.hostname || 'Unknown'}">
                         <i class="fa-solid fa-gears"></i>
                     </button>
                 </div>
             `;
             
-            // Whole card click for connection
+            // Whole card click for connection (optional, keeping for backward compatibility)
             div.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-config')) return;
+                if (e.target.closest('.btn-config') || e.target.closest('.device-selector')) return;
                 onSelect(dev.ip);
+            });
+
+            // Selector change
+            const selector = div.querySelector('.device-selector');
+            selector.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // Uncheck others
+                    document.querySelectorAll('.device-selector').forEach(cb => {
+                        if (cb !== e.target) cb.checked = false;
+                    });
+                    onSelect(dev.ip);
+                } else {
+                    onSelect(null);
+                }
             });
 
             // Config button click
