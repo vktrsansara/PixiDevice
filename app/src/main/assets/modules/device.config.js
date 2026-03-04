@@ -42,6 +42,33 @@ export const DeviceConfig = {
         if (btnSave) {
             btnSave.addEventListener('click', () => this.saveSettings());
         }
+
+        const toggleDangerZone = document.getElementById('toggle_danger_zone');
+        const dangerOptions = document.getElementById('danger-zone-options');
+        const confirmInput = document.getElementById('danger_confirm_input');
+        const btnApplyDanger = document.getElementById('btn-apply-danger');
+
+        if (toggleDangerZone && dangerOptions) {
+            toggleDangerZone.addEventListener('change', (e) => {
+                dangerOptions.style.display = e.target.checked ? 'block' : 'none';
+                if (!e.target.checked) {
+                    confirmInput.value = '';
+                    btnApplyDanger.disabled = true;
+                    document.getElementById('opt_format_fs').checked = false;
+                    document.getElementById('opt_reset_config').checked = false;
+                }
+            });
+        }
+
+        if (confirmInput && btnApplyDanger) {
+            confirmInput.addEventListener('input', (e) => {
+                btnApplyDanger.disabled = e.target.value.toLowerCase() !== 'очистить';
+            });
+        }
+
+        if (btnApplyDanger) {
+            btnApplyDanger.addEventListener('click', () => this.applyReset());
+        }
     },
 
     async handleConfig(ip, hostname) {
@@ -97,6 +124,55 @@ export const DeviceConfig = {
         }
     },
 
+    async applyReset() {
+        if (!this.currentConfigIp) return;
+
+        const formatFs = document.getElementById('opt_format_fs').checked;
+        const resetConfig = document.getElementById('opt_reset_config').checked;
+
+        if (!formatFs && !resetConfig) {
+            alert('Выберите опцию для очистки или отмените действие.');
+            return;
+        }
+
+        const btnApply = document.getElementById('btn-apply-danger');
+        btnApply.disabled = true;
+        btnApply.textContent = 'Выполнение...';
+
+        try {
+            if (formatFs) {
+                Logger.log(`Formatting LittleFS on ${this.currentConfigIp}...`);
+                UI.setStatus('Форматирование файловой системы...');
+                const response = await fetch(`http://${this.currentConfigIp}/format`, {
+                    method: 'POST'
+                });
+                if (!response.ok) {
+                    throw new Error(`Format failed with status: ${response.status}`);
+                }
+            }
+
+            if (resetConfig) {
+                Logger.log(`Resetting config on ${this.currentConfigIp}...`);
+                UI.setStatus('Очистка настроек...');
+                const response = await fetch(`http://${this.currentConfigIp}/config_reset`, {
+                    method: 'POST'
+                });
+                if (!response.ok) {
+                    throw new Error(`Config reset failed with status: ${response.status}`);
+                }
+            }
+
+            alert('Операция успешно завершена! Устройство будет перезагружено.');
+            this.close();
+
+        } catch (err) {
+            Logger.log(`Reset error: ${err}`);
+            alert(`Ошибка при выполнении: ${err.message}`);
+            btnApply.disabled = false;
+            btnApply.textContent = 'Применить';
+        }
+    },
+
     validate(settings) {
         let isValid = true;
         
@@ -146,5 +222,12 @@ export const DeviceConfig = {
     close() {
         UI.switchToTab('tab-connection', 'Подключение');
         this.currentConfigIp = null;
+        
+        // Reset danger zone state
+        const toggleDangerZone = document.getElementById('toggle_danger_zone');
+        if (toggleDangerZone) {
+            toggleDangerZone.checked = false;
+            toggleDangerZone.dispatchEvent(new Event('change'));
+        }
     }
 };

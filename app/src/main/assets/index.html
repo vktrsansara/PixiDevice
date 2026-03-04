@@ -169,6 +169,44 @@
             <button id="btn-save-settings" class="save-btn">Сохранить</button>
             <button id="btn-cancel-settings" class="cancel-btn">Отмена</button>
           </div>
+
+          <div id="danger-zone-container" style="display: none">
+            <hr class="divider danger-divider" />
+            <div class="checkbox-group danger-toggle">
+              <input type="checkbox" id="toggle_danger_zone" />
+              <label for="toggle_danger_zone" class="danger-text"
+                >Форматирование и сброс</label
+              >
+            </div>
+
+            <div
+              id="danger-zone-options"
+              class="danger-options"
+              style="display: none"
+            >
+              <div class="checkbox-group">
+                <input type="checkbox" id="opt_format_fs" />
+                <label for="opt_format_fs">Форматирование ФС.</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="opt_reset_config" />
+                <label for="opt_reset_config">Очистить настройки</label>
+              </div>
+              <div class="input-group">
+                <label for="danger_confirm_input" class="danger-text"
+                  >Введите слово "очистить" для подтверждения:</label
+                >
+                <input
+                  type="text"
+                  id="danger_confirm_input"
+                  placeholder="очистить"
+                />
+              </div>
+              <button id="btn-apply-danger" class="danger-btn" disabled>
+                Применить
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </main>

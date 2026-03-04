@@ -157,12 +157,17 @@ export const UI = {
         const masterSettings = document.getElementById('master-settings');
         const clientSettings = document.getElementById('client-settings');
         const btnSave = document.getElementById('btn-save-settings');
+        const dangerZone = document.getElementById('danger-zone-container');
         
         masterSettings.style.display = 'none';
         clientSettings.style.display = 'none';
 
         if (btnSave) {
             btnSave.disabled = (mode == 0);
+        }
+
+        if (dangerZone) {
+            dangerZone.style.display = (mode == 0) ? 'none' : 'block';
         }
 
         if (mode == 1) { // MASTER
