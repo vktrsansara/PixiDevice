@@ -4,6 +4,7 @@ import { POVManager } from './pov.manager.js';
 
 export const POVPlayer = {
     isPlaying: false,
+    trackName: null,
     playlist: [], // { id, name, previewUrl, timestamp }
     isSelectingImage: false,
     selectedImage: null, // { name, url }
@@ -18,10 +19,48 @@ export const POVPlayer = {
         Logger.log('POVPlayer initialized');
         this.audio = new Audio();
         this.triggeredEffects = new Set();
+        this.loadState();
         this.initEventListeners();
         this.initProgressScrubbing();
         this.initGroupOptions(); // Add this
         this.renderPlaylist();
+    },
+
+    saveState() {
+        const state = {
+            playlist: this.playlist,
+            trackName: this.trackName || null
+        };
+        localStorage.setItem('pov_player_state', JSON.stringify(state));
+    },
+
+    loadState() {
+        try {
+            const data = localStorage.getItem('pov_player_state');
+            if (data) {
+                const state = JSON.parse(data);
+                this.playlist = state.playlist || [];
+                this.trackName = state.trackName || null;
+                
+                if (this.trackName) {
+                    // Update header title
+                    const pageTitle = document.getElementById('page-title');
+                    if (pageTitle) pageTitle.textContent = this.trackName;
+                    
+                    // Update nav item attribute so it persists across tab switches
+                    const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
+                    if (playerNav) playerNav.setAttribute('data-title', this.trackName);
+
+                    // Enable Add button
+                    const btnAdd = document.getElementById('player-main-add');
+                    if (btnAdd) btnAdd.disabled = false;
+                    
+                    Logger.log(`Restored track name: ${this.trackName}`);
+                }
+            }
+        } catch (e) {
+            Logger.error('Failed to load player state:', e);
+        }
     },
 
     initGroupOptions() {
@@ -70,6 +109,9 @@ export const POVPlayer = {
                 if (file) {
                     const url = URL.createObjectURL(file);
                     this.audio.src = url;
+                    
+                    this.trackName = file.name;
+                    this.saveState();
                     
                     // Update header title
                     const pageTitle = document.getElementById('page-title');
@@ -432,6 +474,7 @@ export const POVPlayer = {
         // Sort playlist by timestamp
         this.playlist.sort((a, b) => a.timestamp - b.timestamp);
         
+        this.saveState();
         this.renderPlaylist();
         this.hideAddModal();
         Logger.log(`Effect added: ${isPause ? 'Pause' : this.selectedImage.name} at ${this.formatTime(timestamp)}`);
@@ -478,6 +521,7 @@ export const POVPlayer = {
 
     removeFromPlaylist(id) {
         this.playlist = this.playlist.filter(item => item.id !== id);
+        this.saveState();
         this.renderPlaylist();
         Logger.log(`Effect removed: ${id}`);
     },
