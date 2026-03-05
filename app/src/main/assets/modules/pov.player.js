@@ -250,9 +250,7 @@ export const POVPlayer = {
     },
 
     startSyncLoop() {
-        if (this.syncTimer) {
-            cancelAnimationFrame(this.syncTimer);
-        }
+        if (this.syncTimer) return;
         
         Logger.log('[Sync] Starting loop');
         
@@ -266,6 +264,21 @@ export const POVPlayer = {
             }
         };
         this.syncTimer = requestAnimationFrame(loop);
+    },
+
+    async setGlobalPlayback(play, groupId = 0) {
+        if (!this.masterIp) return;
+        
+        Logger.log(`[Sync] Global Playback: ${play} (Group: ${groupId})`);
+        try {
+            await fetch(`http://${this.masterIp}/set_play`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ play, groupId })
+            });
+        } catch (err) {
+            Logger.error('Global playback update failed:', err);
+        }
     },
 
     async triggerPOV(fileName, groupId = 0, play = true) {
@@ -457,11 +470,8 @@ export const POVPlayer = {
         if (this.isPlaying) {
             this.audio.play().then(() => {
                 this.startSyncLoop();
-                // Resume last animation if exists
-                if (this.lastTriggeredEffect) {
-                    Logger.log(`Resuming last effect: ${this.lastTriggeredEffect.name}`);
-                    this.triggerPOV(this.lastTriggeredEffect.name, this.lastTriggeredEffect.groupId, true);
-                }
+                // Resume animation on all devices
+                this.setGlobalPlayback(true, 0);
             }).catch(err => {
                 Logger.error('Playback failed:', err);
                 this.isPlaying = false;
@@ -469,11 +479,8 @@ export const POVPlayer = {
             });
         } else {
             this.audio.pause();
-            // Pause last animation if exists
-            if (this.lastTriggeredEffect) {
-                Logger.log(`Pausing last effect: ${this.lastTriggeredEffect.name}`);
-                this.triggerPOV(this.lastTriggeredEffect.name, this.lastTriggeredEffect.groupId, false);
-            }
+            // Pause animation on all devices
+            this.setGlobalPlayback(false, 0);
         }
 
         Logger.log(`Player: ${this.isPlaying ? 'Play' : 'Pause'}`);
@@ -487,14 +494,14 @@ export const POVPlayer = {
             this.audio.currentTime = 0;
         }
         this.triggeredEffects.clear();
-        this.lastTriggeredEffect = null; // Clear last effect on stop
+        this.lastTriggeredEffect = null;
         if (this.syncTimer) {
             cancelAnimationFrame(this.syncTimer);
             this.syncTimer = null;
         }
         
-        // Stop POV animation on all devices (groupId 0)
-        this.triggerPOV("", 0, false);
+        // Stop POV animation on all devices
+        this.setGlobalPlayback(false, 0);
         
         Logger.log('Player: Stop');
         this.updateIcons();
