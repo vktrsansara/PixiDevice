@@ -1,4 +1,5 @@
 import { Logger } from './dummy.js';
+import { UI } from './ui.js';
 
 export const POVManager = {
     masterIp: null,
@@ -82,6 +83,18 @@ export const POVManager = {
             return;
         }
 
+        // Setup Selection Mode variables
+        this.selectedFiles = new Set();
+        this.isSelectionMode = false;
+        const deleteBtn = document.getElementById('pov-btn-delete');
+        if (deleteBtn) {
+            deleteBtn.style.display = 'none';
+            // Need to remove old event listeners to prevent duplicates if renderGallery is called multiple times
+            const newBtn = deleteBtn.cloneNode(true);
+            deleteBtn.parentNode.replaceChild(newBtn, deleteBtn);
+            newBtn.addEventListener('click', () => this.deleteSelectedFiles());
+        }
+
         files.forEach(file => {
             const tile = document.createElement('div');
             tile.className = 'pov-tile';
@@ -96,14 +109,203 @@ export const POVManager = {
                 <div class="playing-overlay">
                     <i class="fa-regular fa-circle-play"></i>
                 </div>
+                <div class="selection-overlay">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
             `;
 
-            tile.addEventListener('click', () => {
-                this.playAnimation(file.name);
+            let pressTimer = null;
+            let isDragging = false;
+            
+            const handleInteract = () => {
+                if (this.isSelectionMode) {
+                    this.toggleSelection(file.name, tile);
+                } else {
+                    this.playAnimation(file.name);
+                }
+            };
+
+            const startPress = (e) => {
+                if (e.type === 'touchstart' && e.touches.length > 1) return;
+                isDragging = false;
+                pressTimer = setTimeout(() => {
+                    if (!isDragging && !this.isSelectionMode) {
+                        this.isSelectionMode = true;
+                        this.toggleSelection(file.name, tile);
+                    }
+                }, 500); // 500ms for long press
+            };
+
+            const cancelPress = () => {
+                if (pressTimer) clearTimeout(pressTimer);
+            };
+
+            tile.addEventListener('mousedown', startPress);
+            tile.addEventListener('touchstart', startPress, {passive: true});
+            
+            tile.addEventListener('mousemove', () => isDragging = true);
+            tile.addEventListener('touchmove', () => isDragging = true, {passive: true});
+
+            tile.addEventListener('mouseup', cancelPress);
+            tile.addEventListener('mouseleave', cancelPress);
+            tile.addEventListener('touchend', cancelPress);
+            tile.addEventListener('touchcancel', cancelPress);
+
+            tile.addEventListener('click', (e) => {
+                cancelPress();
+                if (isDragging) return;
+                // If it was just a long press that triggered selection mode, 
+                // we don't want the click event to immediately toggle it again or play
+                // If the click is fired, and we are not in selection mode, play.
+                // If we are, but the selection was just established (we can check class), we still need to handle it properly
+                // Actually, if long press just activated, the subsequent click usually fires.
+                // It's safer to handle the interaction in 'click' rather than touchend to prevent issues
+                // Wait, if long press activates, we don't want click to undo it. 
+                handleInteract();
+            });
+
+            // Prevent default context menu on right click / long press
+            tile.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                cancelPress();
+                if (!this.isSelectionMode) {
+                    this.isSelectionMode = true;
+                    this.toggleSelection(file.name, tile);
+                }
             });
 
             grid.appendChild(tile);
         });
+    },
+
+    toggleSelection(fileName, tile) {
+        if (this.selectedFiles.has(fileName)) {
+            this.selectedFiles.delete(fileName);
+            tile.classList.remove('selected');
+        } else {
+            this.selectedFiles.add(fileName);
+            tile.classList.add('selected');
+        }
+
+        const deleteBtn = document.getElementById('pov-btn-delete');
+        if (this.selectedFiles.size > 0) {
+            if (deleteBtn) deleteBtn.style.display = 'flex';
+        } else {
+            this.isSelectionMode = false;
+            if (deleteBtn) deleteBtn.style.display = 'none';
+        }
+    },
+
+    async showModal(titleStr, messageStr, showCancel = true) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('custom-modal-overlay');
+            if (!overlay) {
+                if (showCancel) {
+                    resolve(confirm(messageStr));
+                } else {
+                    alert(messageStr);
+                    resolve(true);
+                }
+                return;
+            }
+            
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-message');
+            const btnYes = document.getElementById('modal-btn-yes');
+            const btnNo = document.getElementById('modal-btn-no');
+
+            if (title) title.textContent = titleStr;
+            if (msg) msg.textContent = messageStr;
+            
+            if (btnNo) {
+                btnNo.style.display = showCancel ? 'block' : 'none';
+            }
+            
+            if (btnYes) {
+                btnYes.textContent = showCancel ? 'Да' : 'OK';
+            }
+
+            overlay.style.display = 'flex';
+
+            const cleanup = () => {
+                overlay.style.display = 'none';
+                btnYes.removeEventListener('click', onYes);
+                if (btnNo) btnNo.removeEventListener('click', onNo);
+            };
+
+            const onYes = () => { cleanup(); resolve(true); };
+            const onNo = () => { cleanup(); resolve(false); };
+
+            btnYes.addEventListener('click', onYes);
+            if (btnNo) btnNo.addEventListener('click', onNo);
+        });
+    },
+
+    async deleteSelectedFiles() {
+        if (!this.masterIp || this.selectedFiles.size === 0) return;
+        
+        const confirmed = await this.showModal('Удаление', `Удалить выбранные файлы (${this.selectedFiles.size} шт.)?`, true);
+        if (!confirmed) {
+            // Cancel deletion and exit selection mode
+            this.isSelectionMode = false;
+            this.selectedFiles.clear();
+            document.querySelectorAll('.pov-tile').forEach(t => t.classList.remove('selected'));
+            document.getElementById('pov-btn-delete').style.display = 'none';
+            return;
+        }
+
+        const deleteBtn = document.getElementById('pov-btn-delete');
+        if (deleteBtn) deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        let hasError = false;
+        
+        // Convert Set to Array and process sequentially to avoid overwhelming the device
+        const filesToDelete = Array.from(this.selectedFiles);
+        for (const fileName of filesToDelete) {
+            try {
+                // The API expects the exact name as it was listed (with leading slash)
+                const res = await fetch(`http://${this.masterIp}/delete?file=${fileName}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    hasError = true;
+                    Logger.error(`Failed to delete ${fileName}`);
+                }
+            } catch (err) {
+                hasError = true;
+                Logger.error(`Error deleting ${fileName}: ${err}`);
+            }
+        }
+
+        if (hasError) {
+            await this.showModal('Ошибка', 'Некоторые файлы не удалось удалить', false);
+        } else {
+            // Check if active file was deleted
+            if (this.selectedFiles.has(this.activeFile)) {
+                this.activeFile = null;
+            }
+            await this.showModal('Успех', 'Файлы успешно удалены', false);
+        }
+
+        // Reset selection
+        this.isSelectionMode = false;
+        this.selectedFiles.clear();
+        if (deleteBtn) {
+            deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+            deleteBtn.style.display = 'none';
+        }
+        
+        // Refresh gallery
+        await this.loadGallery();
+        
+        // Refresh memory bar in Connection tab
+        try {
+            const res = await fetch(`http://${this.masterIp}/status`, { signal: AbortSignal.timeout(3000) });
+            if (res.ok) {
+                const fsInfo = await res.json();
+                UI.updateDeviceMemory(this.masterIp, fsInfo.totalBytes, fsInfo.usedBytes);
+            }
+        } catch (err) {
+            Logger.error(`Failed to refresh memory bar: ${err}`);
+        }
     },
 
     scheduleUpdate() {

@@ -746,6 +746,101 @@ footer {
     animation: rotate 1.5s linear infinite;
 }
 
+/* POV Selection Mode */
+.selection-overlay {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: var(--header-bg);
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    z-index: 10;
+}
+
+.pov-tile.selected .selection-overlay {
+    display: flex;
+    color: var(--accent-color);
+    background-color: var(--bg-color);
+}
+
+.pov-tile.selected img {
+    opacity: 0.6;
+    border: 3px solid var(--accent-color);
+}
+
+.pov-fab-delete {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #f7768e;
+    color: var(--bg-color);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    z-index: 40;
+    transition: transform 0.2s;
+}
+
+.pov-fab-delete:active {
+    transform: scale(0.9);
+}
+
+/* Custom Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-box {
+    background-color: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    width: 80%;
+    max-width: 300px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    text-align: center;
+}
+
+.modal-box h3 {
+    margin-top: 0;
+    color: var(--fg-color);
+}
+
+.modal-box p {
+    color: var(--inactive-color);
+    margin: 15px 0 25px 0;
+    font-size: 0.95rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.modal-actions button {
+    flex: 1;
+}
+
 @keyframes rotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }

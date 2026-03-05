@@ -106,6 +106,14 @@
             </div>
           </div>
         </div>
+
+        <button
+          id="pov-btn-delete"
+          class="pov-fab-delete"
+          style="display: none"
+        >
+          <i class="fa-solid fa-trash"></i>
+        </button>
       </section>
 
       <section id="tab-player" class="tab-content">
@@ -277,6 +285,18 @@
 
     <div id="upload-progress-container" class="upload-progress-container">
       <div id="upload-progress-bar" class="upload-progress-bar"></div>
+    </div>
+
+    <!-- Custom Modal Overlay -->
+    <div id="custom-modal-overlay" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <h3 id="modal-title">Подтверждение</h3>
+        <p id="modal-message">Вы уверены?</p>
+        <div class="modal-actions">
+          <button id="modal-btn-no" class="cancel-btn">Нет</button>
+          <button id="modal-btn-yes" class="save-btn">Да</button>
+        </div>
+      </div>
     </div>
 
     <footer id="bottom-nav">
