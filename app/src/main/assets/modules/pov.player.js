@@ -8,11 +8,13 @@ export const POVPlayer = {
     selectedImage: null, // { name, url }
     masterIp: null,
     audio: null,
+    isDraggingProgress: false,
 
     init() {
         Logger.log('POVPlayer initialized');
         this.audio = new Audio();
         this.initEventListeners();
+        this.initProgressScrubbing();
         this.renderPlaylist();
     },
     
@@ -93,12 +95,102 @@ export const POVPlayer = {
             });
         }
 
-        // Handle audio end
+        // Handle audio events
         if (this.audio) {
+            this.audio.addEventListener('timeupdate', () => {
+                this.updateProgressBar();
+            });
+
             this.audio.addEventListener('ended', () => {
                 this.stopPlayback();
             });
+
+            // Initial reset
+            this.updateProgressBar();
         }
+    },
+
+    initProgressScrubbing() {
+        const wrapper = document.querySelector('.player-v-progress-wrapper');
+        const bar = document.querySelector('.player-v-progress-bar');
+        if (!wrapper || !bar) return;
+
+        const handleMove = (e) => {
+            if (!this.isDraggingProgress || !this.audio || isNaN(this.audio.duration)) return;
+            
+            const rect = bar.getBoundingClientRect();
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // Calculate relative Y from bottom (0 to 1)
+            let relY = 1 - (clientY - rect.top) / rect.height;
+            relY = Math.max(0, Math.min(1, relY)); // Clamp between 0 and 1
+            
+            const newTime = relY * this.audio.duration;
+            this.audio.currentTime = newTime;
+            this.updateProgressBar();
+        };
+
+        const startDragging = (e) => {
+            if (!this.audio || isNaN(this.audio.duration)) return;
+            this.isDraggingProgress = true;
+            handleMove(e);
+            
+            // Temporary disable transition for smooth drag
+            const fill = document.getElementById('player-v-progress-fill');
+            if (fill) fill.style.transition = 'none';
+
+            // Show tooltip
+            const tooltip = document.getElementById('player-v-time-tooltip');
+            if (tooltip) tooltip.classList.add('visible');
+        };
+
+        const stopDragging = () => {
+            this.isDraggingProgress = false;
+            const fill = document.getElementById('player-v-progress-fill');
+            if (fill) fill.style.transition = 'height 0.1s linear';
+
+            // Hide tooltip (will fade out due to CSS transition)
+            const tooltip = document.getElementById('player-v-time-tooltip');
+            if (tooltip) tooltip.classList.remove('visible');
+        };
+
+        wrapper.addEventListener('mousedown', startDragging);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', stopDragging);
+
+        wrapper.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startDragging(e);
+        }, { passive: false });
+        
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', stopDragging);
+    },
+
+    updateProgressBar() {
+        const fill = document.getElementById('player-v-progress-fill');
+        const tooltip = document.getElementById('player-v-time-tooltip');
+        
+        if (!fill || !this.audio || isNaN(this.audio.duration)) {
+            if (fill) fill.style.height = '0%';
+            if (tooltip) tooltip.textContent = '00:00';
+            return;
+        }
+
+        const percent = (this.audio.currentTime / this.audio.duration) * 100;
+        fill.style.height = `${percent}%`;
+
+        // Update tooltip text
+        if (tooltip) {
+            tooltip.textContent = this.formatTime(this.audio.currentTime);
+        }
+    },
+
+    formatTime(seconds) {
+        if (isNaN(seconds)) return '00:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     },
 
     showAddModal(skipReset = false) {
