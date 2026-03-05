@@ -46,6 +46,7 @@ export const UI = {
         devices.forEach(dev => {
             const div = document.createElement('div');
             div.className = 'device-card';
+            div.id = `device-card-${dev.ip.replace(/\./g, '-')}`;
             const isSetup = dev.is_setup || false;
             const modeName = isSetup ? 'SETUP' : this.getModeName(dev.mode);
             
@@ -75,8 +76,16 @@ export const UI = {
                         </button>
                     </div>
                 </div>
+                ${dev.fsTotal > 0 ? `
+                <div class="device-memory-container">
+                    <div class="device-memory-text">Устройство: ${Math.round(dev.fsUsed / 1024)} КБ / ${Math.round(dev.fsTotal / 1024)} КБ</div>
+                    <div class="device-memory-bar">
+                        <div class="device-memory-fill" style="width: ${(dev.fsUsed / dev.fsTotal) * 100}%;"></div>
+                    </div>
+                </div>
+                ` : ''}
             `;
-            
+
             // Whole card click for connection (optional, keeping for backward compatibility)
             div.addEventListener('click', (e) => {
                 if (e.target.closest('.btn-config') || e.target.closest('.device-selector') || e.target.closest('.btn-download')) return;
@@ -136,6 +145,37 @@ export const UI = {
         if (targetTab) targetTab.classList.add('active');
 
         pageTitle.textContent = title;
+    },
+
+    updateDeviceMemory(ip, fsTotal, fsUsed) {
+        if (!ip) return;
+        const cardId = `device-card-${ip.replace(/\./g, '-')}`;
+        const card = document.getElementById(cardId);
+        if (card && fsTotal > 0) {
+            let container = card.querySelector('.device-memory-container');
+            if (container) {
+                const textElem = container.querySelector('.device-memory-text');
+                const fillElem = container.querySelector('.device-memory-fill');
+                
+                if (textElem) {
+                    textElem.textContent = `Устройство: ${Math.round(fsUsed / 1024)} КБ / ${Math.round(fsTotal / 1024)} КБ`;
+                }
+                if (fillElem) {
+                    fillElem.style.width = `${(fsUsed / fsTotal) * 100}%`;
+                }
+            } else {
+                // If the container didn't exist before, create it
+                container = document.createElement('div');
+                container.className = 'device-memory-container';
+                container.innerHTML = `
+                    <div class="device-memory-text">Устройство: ${Math.round(fsUsed / 1024)} КБ / ${Math.round(fsTotal / 1024)} КБ</div>
+                    <div class="device-memory-bar">
+                        <div class="device-memory-fill" style="width: ${(fsUsed / fsTotal) * 100}%;"></div>
+                    </div>
+                `;
+                card.appendChild(container);
+            }
+        }
     },
 
     initDeviceIdOptions() {

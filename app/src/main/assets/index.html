@@ -42,6 +42,70 @@
             Выберите устройство для загрузки эффектов...
           </div>
         </div>
+
+        <!-- POV Control Panel Drawer -->
+        <div id="pov-controls-container" class="pov-controls-container">
+          <button id="btn-toggle-pov-controls" class="pov-controls-toggle">
+            <i class="fa-solid fa-chevron-up"></i>
+          </button>
+
+          <div id="pov-controls-drawer" class="pov-controls-drawer">
+            <div class="slider-group">
+              <i class="fa-solid fa-sun slider-icon"></i>
+              <div class="slider-content">
+                <div class="slider-header">
+                  <span>Яркость</span>
+                  <span id="pov_brightness_val">25%</span>
+                </div>
+                <input
+                  type="range"
+                  id="pov_brightness"
+                  min="0"
+                  max="100"
+                  value="50"
+                  class="custom-slider"
+                />
+              </div>
+            </div>
+
+            <div class="slider-group">
+              <i class="fa-solid fa-bolt slider-icon"></i>
+              <div class="slider-content">
+                <div class="slider-header">
+                  <span>Скорость</span>
+                  <span id="pov_speed_val">100%</span>
+                </div>
+                <input
+                  type="range"
+                  id="pov_speed"
+                  min="0"
+                  max="100"
+                  value="100"
+                  class="custom-slider"
+                />
+              </div>
+            </div>
+
+            <div class="slider-group">
+              <i class="fa-solid fa-palette slider-icon"></i>
+              <div class="slider-content">
+                <div class="slider-header">
+                  <span>Гамма</span>
+                  <span id="pov_gamma_val">2.2</span>
+                </div>
+                <input
+                  type="range"
+                  id="pov_gamma"
+                  min="1.0"
+                  max="3.0"
+                  step="0.1"
+                  value="2.2"
+                  class="custom-slider"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="tab-player" class="tab-content">

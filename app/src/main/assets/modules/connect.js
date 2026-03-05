@@ -34,13 +34,34 @@ export const Connect = {
             this.discoveredDevices = [];
 
             for (const device of rawDevices) {
-                const info = await this.fetchDeviceInfo(device.ip);
+                let info = null;
+                let fsInfo = null;
+                
+                try {
+                    // Start both fetches concurrently
+                    const [infoResponse, fsResponse] = await Promise.allSettled([
+                        fetch(`http://${device.ip}/`, { signal: AbortSignal.timeout(3000) }),
+                        fetch(`http://${device.ip}/status`, { signal: AbortSignal.timeout(3000) })
+                    ]);
+                    
+                    if (infoResponse.status === 'fulfilled' && infoResponse.value.ok) {
+                        info = await infoResponse.value.json();
+                    }
+                    if (fsResponse.status === 'fulfilled' && fsResponse.value.ok) {
+                        fsInfo = await fsResponse.value.json();
+                    }
+                } catch (err) {
+                    Logger.error(`Error fetching device stats for ${device.ip}: ${err}`);
+                }
+                
                 this.discoveredDevices.push({
                     ip: device.ip,
                     name: device.name,
                     hostname: info ? info.hostname : device.name,
                     mode: info ? info.mode : '?',
-                    is_setup: info ? info.is_setup : false
+                    is_setup: info ? info.is_setup : false,
+                    fsTotal: fsInfo ? fsInfo.totalBytes : 0,
+                    fsUsed: fsInfo ? fsInfo.usedBytes : 0
                 });
             }
             callback(this.discoveredDevices);

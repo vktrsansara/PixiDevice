@@ -59,14 +59,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle upload progress from Java
-    window.addEventListener('upload:progress', (e) => {
+    window.addEventListener('upload:progress', async (e) => {
         const percent = e.detail;
         const progressBar = document.getElementById('upload-progress-bar');
         if (progressBar) {
             progressBar.style.width = `${percent}%`;
             if (percent >= 100 || percent <= 0) {
-                setTimeout(() => { progressBar.style.width = '0%'; }, 2000);
+                setTimeout(async () => {
+                    progressBar.style.width = '0%';
+                    // Only update the active device memory
+                    if (POVManager.masterIp) {
+                        try {
+                            const res = await fetch(`http://${POVManager.masterIp}/status`, { signal: AbortSignal.timeout(3000) });
+                            if (res.ok) {
+                                const fsInfo = await res.json();
+                                UI.updateDeviceMemory(POVManager.masterIp, fsInfo.totalBytes, fsInfo.usedBytes);
+                            }
+                        } catch (err) {
+                            Logger.error(`Failed to refresh memory bar: ${err}`);
+                        }
+                    }
+                }, 1000);
             }
         }
     });

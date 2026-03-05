@@ -3,9 +3,46 @@ import { Logger } from './dummy.js';
 export const POVManager = {
     masterIp: null,
     activeFile: null,
+    controls: {
+        brightness: 25,
+        speed: 100,
+        gamma: 2.2
+    },
+    debounceTimer: null,
 
     init() {
         Logger.log('POVManager initialized');
+        this.initControls();
+    },
+
+    initControls() {
+        const toggleBtn = document.getElementById('btn-toggle-pov-controls');
+        const container = document.getElementById('pov-controls-container');
+
+        if (toggleBtn && container) {
+            toggleBtn.addEventListener('click', () => {
+                container.classList.toggle('open');
+            });
+        }
+
+        const sliders = [
+            { id: 'pov_brightness', key: 'brightness', suffix: '%' },
+            { id: 'pov_speed', key: 'speed', suffix: '%' },
+            { id: 'pov_gamma', key: 'gamma', suffix: '' }
+        ];
+
+        sliders.forEach(slider => {
+            const input = document.getElementById(slider.id);
+            const valDisplay = document.getElementById(`${slider.id}_val`);
+            
+            if (input && valDisplay) {
+                input.addEventListener('input', (e) => {
+                    valDisplay.textContent = e.target.value + slider.suffix;
+                    this.controls[slider.key] = parseFloat(e.target.value);
+                    this.scheduleUpdate();
+                });
+            }
+        });
     },
 
     setMasterIp(ip) {
@@ -69,6 +106,18 @@ export const POVManager = {
         });
     },
 
+    scheduleUpdate() {
+        if (!this.activeFile) return; // Only send updates if an animation is actively playing
+        
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+        
+        this.debounceTimer = setTimeout(() => {
+            this.sendPovCommand(this.activeFile, true);
+        }, 100); // 100ms debounce
+    },
+
     async playAnimation(fileName) {
         let isPlaying = true;
         
@@ -78,7 +127,13 @@ export const POVManager = {
         }
 
         Logger.log(`${isPlaying ? 'Playing' : 'Stopping'} animation: ${fileName}`);
+        this.activeFile = isPlaying ? fileName : null;
+        this.updateActiveUI();
         
+        await this.sendPovCommand(fileName, isPlaying);
+    },
+
+    async sendPovCommand(fileName, isPlaying) {
         try {
             const response = await fetch(`http://${this.masterIp}/set_pov`, {
                 method: 'POST',
@@ -88,16 +143,16 @@ export const POVManager = {
                 body: JSON.stringify({
                     file: fileName,
                     groupId: 0,
-                    brightness: 128, 
-                    speed: 100,      
+                    brightness: this.controls.brightness, 
+                    speed: this.controls.speed,      
+                    gamma: this.controls.gamma,
                     play: isPlaying
                 })
             });
 
             const result = await response.json();
-            if (result.status === 'ok') {
-                this.activeFile = isPlaying ? fileName : null;
-                this.updateActiveUI();
+            if (result.status !== 'ok') {
+                Logger.error('Failed to set pov');
             }
         } catch (err) {
             Logger.error(`Failed to handle animation command: ${err}`);

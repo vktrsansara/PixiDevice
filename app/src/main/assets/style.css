@@ -183,6 +183,40 @@ footer {
     font-size: 1.2rem;
 }
 
+.device-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.device-memory-container {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+}
+
+.device-memory-text {
+    font-size: 0.75rem;
+    color: var(--fg-color);
+    margin-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.device-memory-bar {
+    width: 100%;
+    height: 6px;
+    background-color: var(--bg-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.device-memory-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
 .config-container {
     padding-bottom: 20px;
 }
@@ -582,6 +616,130 @@ footer {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* POV Controls Panel */
+.pov-controls-container {
+    position: absolute;
+    bottom: 70px; /* Above Footer */
+    left: 0;
+    right: 0;
+    z-index: 50;
+    pointer-events: none; /* Let clicks pass through to grid behind it */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pov-controls-toggle {
+    pointer-events: auto;
+    width: 60px;
+    height: 30px;
+    background-color: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-top-left-radius: 30px;
+    border-top-right-radius: 30px;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 -4px 6px rgba(0,0,0,0.3);
+    margin-bottom: -1px; /* Overlap border */
+    transition: background-color 0.2s;
+}
+
+.pov-controls-toggle i {
+    transition: transform 0.3s;
+}
+
+.pov-controls-container.open .pov-controls-toggle i {
+    transform: rotate(180deg);
+}
+
+.pov-controls-drawer {
+    pointer-events: auto;
+    width: 100%;
+    background-color: var(--header-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 20px;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    position: absolute;
+    top: 30px; /* Height of the toggle button */
+}
+
+.pov-controls-container.open .pov-controls-drawer {
+    transform: translateY(0);
+    opacity: 1;
+    position: relative;
+    top: 0;
+}
+
+.slider-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.slider-group:last-child {
+    margin-bottom: 0;
+}
+
+.slider-icon {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    width: 25px;
+    text-align: center;
+}
+
+.slider-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.slider-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--fg-color);
+    font-weight: 600;
+}
+
+.slider-header span:last-child {
+    color: var(--accent-color);
+}
+
+.custom-slider {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--bg-color);
+    border-radius: 3px;
+    outline: none;
+}
+
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+}
+
+.custom-slider::-webkit-slider-thumb:active {
+    transform: scale(1.2);
 }
 
 .scanning-loader {
