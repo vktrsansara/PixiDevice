@@ -43,19 +43,32 @@ export const POVPlayer = {
                 this.trackName = state.trackName || null;
                 
                 if (this.trackName) {
+                    const displayTitle = this.trackName.length > 20 
+                        ? this.trackName.substring(0, 20) + '...' 
+                        : this.trackName;
+
                     // Update header title
                     const pageTitle = document.getElementById('page-title');
-                    if (pageTitle) pageTitle.textContent = this.trackName;
+                    if (pageTitle) pageTitle.textContent = displayTitle;
                     
                     // Update nav item attribute so it persists across tab switches
                     const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
-                    if (playerNav) playerNav.setAttribute('data-title', this.trackName);
+                    if (playerNav) playerNav.setAttribute('data-title', displayTitle);
 
                     // Enable Add button
                     const btnAdd = document.getElementById('player-main-add');
                     if (btnAdd) btnAdd.disabled = false;
                     
-                    Logger.log(`Restored track name: ${this.trackName}`);
+                    Logger.log(`Restored track name: ${this.trackName} (Display: ${displayTitle})`);
+
+                    // Try to restore actual audio from Android persistent storage
+                    if (window.AndroidMusic) {
+                        const persistentUrl = window.AndroidMusic.getLastTrackPath();
+                        if (persistentUrl) {
+                            this.audio.src = persistentUrl;
+                            Logger.log(`Audio restored from persistent storage: ${persistentUrl}`);
+                        }
+                    }
                 }
             }
         } catch (e) {
@@ -101,33 +114,25 @@ export const POVPlayer = {
 
         if (btnMusic && audioInput) {
             btnMusic.addEventListener('click', () => {
-                audioInput.click();
+                if (window.AndroidMusic) {
+                    window.AndroidMusic.pickAudio();
+                } else {
+                    audioInput.click();
+                }
             });
 
             audioInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     const url = URL.createObjectURL(file);
-                    this.audio.src = url;
-                    
-                    this.trackName = file.name;
-                    this.saveState();
-                    
-                    // Update header title
-                    const pageTitle = document.getElementById('page-title');
-                    if (pageTitle) pageTitle.textContent = file.name;
-                    
-                    // Update nav item attribute so it persists across tab switches
-                    const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
-                    if (playerNav) playerNav.setAttribute('data-title', file.name);
-
-                    // Enable Add button
-                    const btnAdd = document.getElementById('player-main-add');
-                    if (btnAdd) btnAdd.disabled = false;
-
-                    Logger.log(`Track loaded: ${file.name}`);
-                    UI.showToast(`Трек загружен: ${file.name}`);
+                    this.onAudioFileSelected(file.name, url);
                 }
+            });
+
+            // Handle Android persistent audio loading
+            window.addEventListener('audio:loaded', (e) => {
+                const { name, url } = e.detail;
+                this.onAudioFileSelected(name, url);
             });
         }
 
@@ -193,6 +198,31 @@ export const POVPlayer = {
             // Initial reset
             this.updateProgressBar();
         }
+    },
+
+    onAudioFileSelected(name, url) {
+        this.audio.src = url;
+        this.trackName = name;
+        this.saveState();
+        
+        const displayTitle = name.length > 20 
+            ? name.substring(0, 20) + '...' 
+            : name;
+
+        // Update header title
+        const pageTitle = document.getElementById('page-title');
+        if (pageTitle) pageTitle.textContent = displayTitle;
+        
+        // Update nav item attribute so it persists across tab switches
+        const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
+        if (playerNav) playerNav.setAttribute('data-title', displayTitle);
+
+        // Enable Add button
+        const btnAdd = document.getElementById('player-main-add');
+        if (btnAdd) btnAdd.disabled = false;
+
+        Logger.log(`Track loaded: ${name} (Display: ${displayTitle})`);
+        UI.showToast(`Трек загружен: ${displayTitle}`);
     },
 
     initProgressScrubbing() {
