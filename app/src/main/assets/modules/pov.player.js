@@ -12,6 +12,7 @@ export const POVPlayer = {
     isDraggingProgress: false,
     triggeredEffects: new Set(), // Set of item.id already triggered for current playback
     syncTimer: null,
+    lastTriggeredEffect: null, // Stores { name, groupId } of the last effect played
 
     init() {
         Logger.log('POVPlayer initialized');
@@ -19,7 +20,21 @@ export const POVPlayer = {
         this.triggeredEffects = new Set();
         this.initEventListeners();
         this.initProgressScrubbing();
+        this.initGroupOptions(); // Add this
         this.renderPlaylist();
+    },
+
+    initGroupOptions() {
+        const select = document.getElementById('player-add-group-id');
+        if (!select) return;
+        
+        select.innerHTML = '';
+        for (let i = 0; i <= 255; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i === 0 ? 'Все (0)' : `Группа ${i}`;
+            select.appendChild(opt);
+        }
     },
     
     setMasterIp(ip) {
@@ -227,8 +242,8 @@ export const POVPlayer = {
             const diff = currentTime - item.timestamp;
             // Match if we are within 0s to 1s ahead of the timestamp
             if (diff >= 0 && diff < 1.0) {
-                Logger.log(`[Sync] Triggering effect: ${item.name} (Timestamp: ${item.timestamp}s, Current: ${currentTime}s)`);
-                this.triggerPOV(item.name);
+                Logger.log(`[Sync] Triggering effect: ${item.name} (ID: ${item.groupId}, Timestamp: ${item.timestamp}s)`);
+                this.triggerPOV(item.name, item.groupId);
                 this.triggeredEffects.add(item.id);
             }
         });
@@ -253,13 +268,17 @@ export const POVPlayer = {
         this.syncTimer = requestAnimationFrame(loop);
     },
 
-    async triggerPOV(fileName) {
+    async triggerPOV(fileName, groupId = 0, play = true) {
         if (!this.masterIp) {
             Logger.error('Cannot trigger POV: masterIp is not set');
             return;
         }
         
-        Logger.log(`Sending trigger to ${this.masterIp}: ${fileName}`);
+        Logger.log(`Sending trigger to ${this.masterIp}: ${fileName} (Group: ${groupId}, Play: ${play})`);
+        
+        if (play && fileName) {
+            this.lastTriggeredEffect = { name: fileName, groupId: groupId };
+        }
         
         try {
             // Must match format in POVManager.sendPovCommand
@@ -269,12 +288,12 @@ export const POVPlayer = {
                     'Content-Type': 'text/plain' 
                 },
                 body: JSON.stringify({
-                    file: fileName,
-                    groupId: 0,
+                    file: fileName || "",
+                    groupId: groupId,
                     brightness: POVManager.controls.brightness, 
                     speed: POVManager.controls.speed,      
                     gamma: POVManager.controls.gamma,
-                    play: true
+                    play: play
                 })
             });
             
@@ -363,12 +382,15 @@ export const POVPlayer = {
         if (!this.selectedImage) return;
         
         const timestamp = this.audio ? this.audio.currentTime : 0;
+        const groupEl = document.getElementById('player-add-group-id');
+        const groupId = groupEl ? parseInt(groupEl.value) : 0;
         
         this.playlist.push({
             id: Date.now() + Math.random().toString(36).substr(2, 9),
             name: this.selectedImage.name,
             previewUrl: this.selectedImage.url,
-            timestamp: timestamp
+            timestamp: timestamp,
+            groupId: groupId
         });
         
         // Sort playlist by timestamp
@@ -398,8 +420,8 @@ export const POVPlayer = {
                     <img src="${item.previewUrl}" alt="">
                 </div>
                 <div class="playlist-info">
+                    <div class="playlist-group-id">ID: ${item.groupId !== undefined ? item.groupId : 0}</div>
                     <div class="playlist-time">${this.formatTime(item.timestamp)}</div>
-                    <div class="playlist-name">${item.name}</div>
                 </div>
                 <button class="playlist-item-remove" title="Удалить">
                     <i class="fa-solid fa-xmark"></i>
@@ -435,6 +457,11 @@ export const POVPlayer = {
         if (this.isPlaying) {
             this.audio.play().then(() => {
                 this.startSyncLoop();
+                // Resume last animation if exists
+                if (this.lastTriggeredEffect) {
+                    Logger.log(`Resuming last effect: ${this.lastTriggeredEffect.name}`);
+                    this.triggerPOV(this.lastTriggeredEffect.name, this.lastTriggeredEffect.groupId, true);
+                }
             }).catch(err => {
                 Logger.error('Playback failed:', err);
                 this.isPlaying = false;
@@ -442,6 +469,11 @@ export const POVPlayer = {
             });
         } else {
             this.audio.pause();
+            // Pause last animation if exists
+            if (this.lastTriggeredEffect) {
+                Logger.log(`Pausing last effect: ${this.lastTriggeredEffect.name}`);
+                this.triggerPOV(this.lastTriggeredEffect.name, this.lastTriggeredEffect.groupId, false);
+            }
         }
 
         Logger.log(`Player: ${this.isPlaying ? 'Play' : 'Pause'}`);
@@ -455,10 +487,15 @@ export const POVPlayer = {
             this.audio.currentTime = 0;
         }
         this.triggeredEffects.clear();
+        this.lastTriggeredEffect = null; // Clear last effect on stop
         if (this.syncTimer) {
             cancelAnimationFrame(this.syncTimer);
             this.syncTimer = null;
         }
+        
+        // Stop POV animation on all devices (groupId 0)
+        this.triggerPOV("", 0, false);
+        
         Logger.log('Player: Stop');
         this.updateIcons();
     },
