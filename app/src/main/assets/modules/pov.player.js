@@ -106,6 +106,18 @@ export const POVPlayer = {
                 this.addEffectToPlaylist();
             });
         }
+
+        const chkDisable = document.getElementById('player-add-disable-effect');
+        if (chkDisable) {
+            chkDisable.addEventListener('change', () => {
+                const btnModalAdd = document.getElementById('player-modal-add');
+                if (chkDisable.checked) {
+                    if (btnModalAdd) btnModalAdd.disabled = false;
+                } else if (!this.selectedImage) {
+                    if (btnModalAdd) btnModalAdd.disabled = true;
+                }
+            });
+        }
         
         if (btnToggle) {
             btnToggle.addEventListener('click', () => {
@@ -242,8 +254,13 @@ export const POVPlayer = {
             const diff = currentTime - item.timestamp;
             // Match if we are within 0s to 1s ahead of the timestamp
             if (diff >= 0 && diff < 1.0) {
-                Logger.log(`[Sync] Triggering effect: ${item.name} (ID: ${item.groupId}, Timestamp: ${item.timestamp}s)`);
-                this.triggerPOV(item.name, item.groupId);
+                if (item.isPause) {
+                    Logger.log(`[Sync] Triggering global PAUSE for group ${item.groupId}`);
+                    this.triggerPOV("", item.groupId, false);
+                } else {
+                    Logger.log(`[Sync] Triggering effect: ${item.name} (ID: ${item.groupId}, Timestamp: ${item.timestamp}s)`);
+                    this.triggerPOV(item.name, item.groupId, true);
+                }
                 this.triggeredEffects.add(item.id);
             }
         });
@@ -266,15 +283,15 @@ export const POVPlayer = {
         this.syncTimer = requestAnimationFrame(loop);
     },
 
-    async setGlobalPlayback(play, groupId = 0) {
+    async setGlobalPlayback(play, groupId = 0, reset = false) {
         if (!this.masterIp) return;
         
-        Logger.log(`[Sync] Global Playback: ${play} (Group: ${groupId})`);
+        Logger.log(`[Sync] Global Playback: ${play} (Group: ${groupId}, Reset: ${reset})`);
         try {
             await fetch(`http://${this.masterIp}/set_play`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ play, groupId })
+                body: JSON.stringify({ play, groupId, reset })
             });
         } catch (err) {
             Logger.error('Global playback update failed:', err);
@@ -343,10 +360,12 @@ export const POVPlayer = {
         const field = document.getElementById('player-add-select-image');
         const preview = document.getElementById('player-selected-image-preview');
         const btnAdd = document.getElementById('player-modal-add');
+        const chkDisable = document.getElementById('player-add-disable-effect');
 
         if (field) field.classList.remove('has-preview');
         if (preview) preview.style.display = 'none';
         if (btnAdd) btnAdd.disabled = true;
+        if (chkDisable) chkDisable.checked = false;
     },
 
     startImageSelection() {
@@ -392,7 +411,10 @@ export const POVPlayer = {
     },
 
     addEffectToPlaylist() {
-        if (!this.selectedImage) return;
+        const chkDisable = document.getElementById('player-add-disable-effect');
+        const isPause = chkDisable ? chkDisable.checked : false;
+
+        if (!this.selectedImage && !isPause) return;
         
         const timestamp = this.audio ? this.audio.currentTime : 0;
         const groupEl = document.getElementById('player-add-group-id');
@@ -400,10 +422,11 @@ export const POVPlayer = {
         
         this.playlist.push({
             id: Date.now() + Math.random().toString(36).substr(2, 9),
-            name: this.selectedImage.name,
-            previewUrl: this.selectedImage.url,
+            name: isPause ? 'ПАУЗА' : (this.selectedImage ? this.selectedImage.name : ''),
+            previewUrl: isPause ? null : (this.selectedImage ? this.selectedImage.url : null),
             timestamp: timestamp,
-            groupId: groupId
+            groupId: groupId,
+            isPause: isPause
         });
         
         // Sort playlist by timestamp
@@ -411,7 +434,7 @@ export const POVPlayer = {
         
         this.renderPlaylist();
         this.hideAddModal();
-        Logger.log(`Effect added: ${this.selectedImage.name} at ${this.formatTime(timestamp)}`);
+        Logger.log(`Effect added: ${isPause ? 'Pause' : this.selectedImage.name} at ${this.formatTime(timestamp)}`);
     },
 
     renderPlaylist() {
@@ -430,7 +453,7 @@ export const POVPlayer = {
             
             el.innerHTML = `
                 <div class="playlist-preview">
-                    <img src="${item.previewUrl}" alt="">
+                    ${item.isPause ? '<i class="fa-solid fa-pause pause-icon"></i>' : `<img src="${item.previewUrl}" alt="">`}
                 </div>
                 <div class="playlist-info">
                     <div class="playlist-group-id">ID: ${item.groupId !== undefined ? item.groupId : 0}</div>
@@ -500,8 +523,8 @@ export const POVPlayer = {
             this.syncTimer = null;
         }
         
-        // Stop POV animation on all devices
-        this.setGlobalPlayback(false, 0);
+        // Stop POV animation and clear memory on all devices
+        this.setGlobalPlayback(false, 0, true);
         
         Logger.log('Player: Stop');
         this.updateIcons();

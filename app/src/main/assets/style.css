@@ -1054,6 +1054,30 @@ footer {
     font-size: 1rem;
 }
 
+.modal-disable-effect {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: var(--bg-color);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.modal-disable-effect input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.modal-disable-effect label {
+    font-weight: 600;
+    color: var(--fg-color);
+    cursor: pointer;
+}
+
 .playlist-preview {
     width: 70px;
     height: 50px;
@@ -1063,12 +1087,22 @@ footer {
     border: 1px solid var(--border-color);
     margin-right: 15px;
     flex-shrink: 0;
+    display: flex; /* Added */
+    align-items: center; /* Added */
+    justify-content: center; /* Added */
+    position: relative; /* Added */
 }
 
 .playlist-preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.playlist-preview .pause-icon {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    text-shadow: 0 0 10px rgba(122, 162, 247, 0.5);
 }
 
 .playlist-item-remove {
