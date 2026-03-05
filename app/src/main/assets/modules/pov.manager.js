@@ -1,5 +1,6 @@
 import { Logger } from './dummy.js';
 import { UI } from './ui.js';
+import { POVPlayer } from './pov.player.js';
 
 export const POVManager = {
     masterIp: null,
@@ -117,14 +118,6 @@ export const POVManager = {
             let pressTimer = null;
             let isDragging = false;
             
-            const handleInteract = () => {
-                if (this.isSelectionMode) {
-                    this.toggleSelection(file.name, tile);
-                } else {
-                    this.playAnimation(file.name);
-                }
-            };
-
             const startPress = (e) => {
                 if (e.type === 'touchstart' && e.touches.length > 1) return;
                 isDragging = false;
@@ -154,14 +147,18 @@ export const POVManager = {
             tile.addEventListener('click', (e) => {
                 cancelPress();
                 if (isDragging) return;
-                // If it was just a long press that triggered selection mode, 
-                // we don't want the click event to immediately toggle it again or play
-                // If the click is fired, and we are not in selection mode, play.
-                // If we are, but the selection was just established (we can check class), we still need to handle it properly
-                // Actually, if long press just activated, the subsequent click usually fires.
-                // It's safer to handle the interaction in 'click' rather than touchend to prevent issues
-                // Wait, if long press activates, we don't want click to undo it. 
-                handleInteract();
+                
+                // If the player is waiting for an image selection
+                if (POVPlayer.isSelectingImage) {
+                    POVPlayer.onImageSelected(file.name);
+                    return;
+                }
+
+                if (this.isSelectionMode) {
+                    this.toggleSelection(file.name, tile);
+                } else {
+                    this.playAnimation(file.name, tile);
+                }
             });
 
             // Prevent default context menu on right click / long press

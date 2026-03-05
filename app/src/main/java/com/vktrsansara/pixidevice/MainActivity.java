@@ -11,6 +11,9 @@ import androidx.core.view.WindowInsetsCompat;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
+import android.net.Uri;
 import android.view.View;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.view.WindowCompat;
@@ -22,6 +25,8 @@ public class MainActivity extends AppCompatActivity {
     private WebView myWebView;
     private NsdHelper nsdHelper;
     private ImageManager imageManager;
+    private ValueCallback<Uri[]> filePathCallback;
+    private static final int FILE_CHOOSER_RESULT_CODE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +45,27 @@ public class MainActivity extends AppCompatActivity {
         
         // Ensure links open within the WebView
         myWebView.setWebViewClient(new WebViewClient());
+        
+        // Handle file chooser (input type="file")
+        myWebView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
+                                           FileChooserParams fileChooserParams) {
+                if (MainActivity.this.filePathCallback != null) {
+                    MainActivity.this.filePathCallback.onReceiveValue(null);
+                }
+                MainActivity.this.filePathCallback = filePathCallback;
+
+                Intent intent = fileChooserParams.createIntent();
+                try {
+                    startActivityForResult(intent, FILE_CHOOSER_RESULT_CODE);
+                } catch (Exception e) {
+                    MainActivity.this.filePathCallback = null;
+                    return false;
+                }
+                return true;
+            }
+        });
         
         myWebView.loadUrl("file:///android_asset/index.html");
 
@@ -67,6 +93,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_CHOOSER_RESULT_CODE) {
+            if (filePathCallback != null) {
+                Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                filePathCallback.onReceiveValue(results);
+                filePathCallback = null;
+            }
+        }
         if (imageManager != null) {
             imageManager.handleResult(requestCode, resultCode, data);
         }

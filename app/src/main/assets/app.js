@@ -3,6 +3,7 @@ import { UI } from './modules/ui.js';
 import { Connect } from './modules/connect.js';
 import { DeviceConfig } from './modules/device.config.js';
 import { POVManager } from './modules/pov.manager.js';
+import { POVPlayer } from './modules/pov.player.js';
 import { CustomSelect } from './modules/custom.select.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.initDeviceIdOptions();
     DeviceConfig.init();
     POVManager.init();
+    POVPlayer.init();
     CustomSelect.init();
 
     // --- Discovery Logic ---
@@ -91,11 +93,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (ip) {
                     Logger.log(`Selected device: ${ip}`);
                     POVManager.setMasterIp(ip);
+                    POVPlayer.setMasterIp(ip);
                     // POV gallery will load when user switches to tab or if already there
                     POVManager.loadGallery();
                 } else {
                     Logger.log('Device unselected');
                     POVManager.setMasterIp(null);
+                    POVPlayer.setMasterIp(null);
                 }
             },
             async (ip, hostname) => {
