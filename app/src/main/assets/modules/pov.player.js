@@ -1,18 +1,22 @@
 import { Logger } from './dummy.js';
 import { UI } from './ui.js';
+import { POVManager } from './pov.manager.js';
 
 export const POVPlayer = {
     isPlaying: false,
-    playlist: [], // { name: '...', previewUrl: '...' }
+    playlist: [], // { id, name, previewUrl, timestamp }
     isSelectingImage: false,
     selectedImage: null, // { name, url }
     masterIp: null,
     audio: null,
     isDraggingProgress: false,
+    triggeredEffects: new Set(), // Set of item.id already triggered for current playback
+    syncTimer: null,
 
     init() {
         Logger.log('POVPlayer initialized');
         this.audio = new Audio();
+        this.triggeredEffects = new Set();
         this.initEventListeners();
         this.initProgressScrubbing();
         this.renderPlaylist();
@@ -28,6 +32,7 @@ export const POVPlayer = {
         const audioInput = document.getElementById('player-audio-input');
         const btnToggle = document.getElementById('player-main-toggle');
         const btnStop = document.getElementById('player-main-stop');
+        const btnMenu = document.getElementById('player-main-menu');
         
         // Modal elements
         const btnSelectImage = document.getElementById('player-add-select-image');
@@ -58,6 +63,10 @@ export const POVPlayer = {
                     // Update nav item attribute so it persists across tab switches
                     const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
                     if (playerNav) playerNav.setAttribute('data-title', file.name);
+
+                    // Enable Add button
+                    const btnAdd = document.getElementById('player-main-add');
+                    if (btnAdd) btnAdd.disabled = false;
 
                     Logger.log(`Track loaded: ${file.name}`);
                     UI.showToast(`Трек загружен: ${file.name}`);
@@ -92,6 +101,13 @@ export const POVPlayer = {
         if (btnStop) {
             btnStop.addEventListener('click', () => {
                 this.stopPlayback();
+            });
+        }
+
+        if (btnMenu) {
+            btnMenu.addEventListener('click', () => {
+                Logger.log('Player: Menu clicked');
+                UI.showToast('Меню (в разработке)');
             });
         }
 
@@ -152,6 +168,17 @@ export const POVPlayer = {
             // Hide tooltip (will fade out due to CSS transition)
             const tooltip = document.getElementById('player-v-time-tooltip');
             if (tooltip) tooltip.classList.remove('visible');
+            
+            // Recalculate which effects should be considered "already triggered" based on new position
+            this.triggeredEffects.clear();
+            const currentTime = this.audio.currentTime;
+            this.playlist.forEach((item) => {
+                // If we seek past an effect (including a small buffer), mark it as triggered
+                if (currentTime > item.timestamp + 0.1) {
+                    this.triggeredEffects.add(item.id);
+                }
+            });
+            Logger.log(`Seeking finished at ${this.formatTime(currentTime)}, reset triggers.`);
         };
 
         wrapper.addEventListener('mousedown', startDragging);
@@ -183,6 +210,81 @@ export const POVPlayer = {
         // Update tooltip text
         if (tooltip) {
             tooltip.textContent = this.formatTime(this.audio.currentTime);
+        }
+
+        // Check for effects to trigger
+        this.checkEffectsToTrigger();
+    },
+
+    checkEffectsToTrigger() {
+        if (!this.isPlaying || !this.audio || isNaN(this.audio.duration)) return;
+
+        const currentTime = this.audio.currentTime;
+        
+        this.playlist.forEach((item) => {
+            if (this.triggeredEffects.has(item.id)) return;
+
+            const diff = currentTime - item.timestamp;
+            // Match if we are within 0s to 1s ahead of the timestamp
+            if (diff >= 0 && diff < 1.0) {
+                Logger.log(`[Sync] Triggering effect: ${item.name} (Timestamp: ${item.timestamp}s, Current: ${currentTime}s)`);
+                this.triggerPOV(item.name);
+                this.triggeredEffects.add(item.id);
+            }
+        });
+    },
+
+    startSyncLoop() {
+        if (this.syncTimer) {
+            cancelAnimationFrame(this.syncTimer);
+        }
+        
+        Logger.log('[Sync] Starting loop');
+        
+        const loop = () => {
+            if (this.isPlaying && this.audio && !this.audio.paused) {
+                this.checkEffectsToTrigger();
+                this.syncTimer = requestAnimationFrame(loop);
+            } else {
+                Logger.log('[Sync] Stopping loop');
+                this.syncTimer = null;
+            }
+        };
+        this.syncTimer = requestAnimationFrame(loop);
+    },
+
+    async triggerPOV(fileName) {
+        if (!this.masterIp) {
+            Logger.error('Cannot trigger POV: masterIp is not set');
+            return;
+        }
+        
+        Logger.log(`Sending trigger to ${this.masterIp}: ${fileName}`);
+        
+        try {
+            // Must match format in POVManager.sendPovCommand
+            const response = await fetch(`http://${this.masterIp}/set_pov`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain' 
+                },
+                body: JSON.stringify({
+                    file: fileName,
+                    groupId: 0,
+                    brightness: POVManager.controls.brightness, 
+                    speed: POVManager.controls.speed,      
+                    gamma: POVManager.controls.gamma,
+                    play: true
+                })
+            });
+            
+            if (!response.ok) {
+                Logger.error(`Failed to trigger POV: ${response.status} ${response.statusText}`);
+            } else {
+                Logger.log(`POV trigger successful: ${fileName}`);
+            }
+        } catch (err) {
+            Logger.error('Error triggering POV:', err);
         }
     },
 
@@ -260,14 +362,21 @@ export const POVPlayer = {
     addEffectToPlaylist() {
         if (!this.selectedImage) return;
         
+        const timestamp = this.audio ? this.audio.currentTime : 0;
+        
         this.playlist.push({
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
             name: this.selectedImage.name,
-            previewUrl: this.selectedImage.url
+            previewUrl: this.selectedImage.url,
+            timestamp: timestamp
         });
+        
+        // Sort playlist by timestamp
+        this.playlist.sort((a, b) => a.timestamp - b.timestamp);
         
         this.renderPlaylist();
         this.hideAddModal();
-        Logger.log(`Effect added: ${this.selectedImage.name}`);
+        Logger.log(`Effect added: ${this.selectedImage.name} at ${this.formatTime(timestamp)}`);
     },
 
     renderPlaylist() {
@@ -275,18 +384,22 @@ export const POVPlayer = {
         if (!container) return;
 
         if (this.playlist.length === 0) {
-            container.innerHTML = '<div class="empty-msg">Плейлист пуст. Нажмите +, чтобы добавить эффект.</div>';
+            container.innerHTML = '<div class="empty-msg">«Плейлист пуст. Прежде чем добавлять эффект, выберите трек. Нажмите +, чтобы добавить эффект»</div>';
             return;
         }
 
         container.innerHTML = '';
-        this.playlist.forEach((item, index) => {
+        this.playlist.forEach((item) => {
             const el = document.createElement('div');
             el.className = 'playlist-item';
             
             el.innerHTML = `
                 <div class="playlist-preview">
                     <img src="${item.previewUrl}" alt="">
+                </div>
+                <div class="playlist-info">
+                    <div class="playlist-time">${this.formatTime(item.timestamp)}</div>
+                    <div class="playlist-name">${item.name}</div>
                 </div>
                 <button class="playlist-item-remove" title="Удалить">
                     <i class="fa-solid fa-xmark"></i>
@@ -297,7 +410,7 @@ export const POVPlayer = {
             if (btnRemove) {
                 btnRemove.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    this.removeFromPlaylist(index);
+                    this.removeFromPlaylist(item.id);
                 });
             }
             
@@ -305,10 +418,10 @@ export const POVPlayer = {
         });
     },
 
-    removeFromPlaylist(index) {
-        this.playlist.splice(index, 1);
+    removeFromPlaylist(id) {
+        this.playlist = this.playlist.filter(item => item.id !== id);
         this.renderPlaylist();
-        Logger.log(`Effect removed at index ${index}`);
+        Logger.log(`Effect removed: ${id}`);
     },
 
     togglePlayback() {
@@ -320,7 +433,9 @@ export const POVPlayer = {
         this.isPlaying = !this.isPlaying;
         
         if (this.isPlaying) {
-            this.audio.play().catch(err => {
+            this.audio.play().then(() => {
+                this.startSyncLoop();
+            }).catch(err => {
                 Logger.error('Playback failed:', err);
                 this.isPlaying = false;
                 this.updateIcons();
@@ -338,6 +453,11 @@ export const POVPlayer = {
         if (this.audio) {
             this.audio.pause();
             this.audio.currentTime = 0;
+        }
+        this.triggeredEffects.clear();
+        if (this.syncTimer) {
+            cancelAnimationFrame(this.syncTimer);
+            this.syncTimer = null;
         }
         Logger.log('Player: Stop');
         this.updateIcons();

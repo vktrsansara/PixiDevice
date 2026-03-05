@@ -121,7 +121,8 @@
           <div id="player-playlist" class="player-playlist-list">
             <!-- Playlist items will be added here -->
             <div class="empty-msg">
-              Плейлист пуст. Нажмите +, чтобы добавить эффект.
+              «Плейлист пуст. Прежде чем добавлять эффект, выберите трек.
+              Нажмите +, чтобы добавить эффект»
             </div>
           </div>
 
@@ -137,7 +138,7 @@
         </div>
 
         <div class="player-controls-bar">
-          <button id="player-main-add" title="Добавить эффект">
+          <button id="player-main-add" title="Добавить эффект" disabled>
             <i class="fa-solid fa-plus"></i>
           </button>
           <button id="player-main-music" title="Открыть трек">
@@ -148,6 +149,9 @@
           </button>
           <button id="player-main-stop" title="Стоп">
             <i class="fa-regular fa-circle-stop"></i>
+          </button>
+          <button id="player-main-menu" title="Меню">
+            <i class="fa-solid fa-bars"></i>
           </button>
         </div>
 
