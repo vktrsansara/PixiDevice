@@ -214,41 +214,6 @@ export const POVPlayer = {
             });
         }
 
-        const btnSaveMenu = document.getElementById('player-menu-save');
-        if (btnSaveMenu) {
-            btnSaveMenu.addEventListener('click', () => {
-                this.showSaveModal();
-            });
-        }
-
-        const btnOpenMenu = document.getElementById('player-menu-open');
-        if (btnOpenMenu) {
-            btnOpenMenu.addEventListener('click', () => {
-                this.openPlaylist();
-            });
-        }
-
-        const btnSaveCancel = document.getElementById('player-save-cancel');
-        if (btnSaveCancel) {
-            btnSaveCancel.addEventListener('click', () => {
-                this.hideSaveModal();
-            });
-        }
-
-        const btnSaveConfirm = document.getElementById('player-save-confirm');
-        if (btnSaveConfirm) {
-            btnSaveConfirm.addEventListener('click', () => {
-                const filenameInput = document.getElementById('player-save-filename');
-                if (filenameInput && filenameInput.value.trim() !== '') {
-                    POVPlayer.savePlaylist(filenameInput.value.trim());
-                    POVPlayer.hideSaveModal();
-                    UI.showToast('Файл сохранен');
-                } else {
-                    UI.showToast('Введите имя файла');
-                }
-            });
-        }
-
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('player-menu-dropdown');
@@ -278,11 +243,6 @@ export const POVPlayer = {
             });
         }
 
-        window.addEventListener('playlist:loaded', (e) => {
-            const { json } = e.detail;
-            UI.showToast('Плейлист открыт');
-            POVPlayer.handlePlaylistLoaded(json);
-        });
 
         // Initial reset
         this.updateProgressBar();
@@ -847,88 +807,4 @@ export const POVPlayer = {
         if (dropdown) dropdown.classList.remove('active');
     },
 
-    showSaveModal() {
-        const modal = document.getElementById('player-save-modal');
-        const input = document.getElementById('player-save-filename');
-        if (modal) {
-            modal.style.display = 'flex';
-            if (input) {
-                const now = new Date();
-                const pad = (n) => n.toString().padStart(2, '0');
-                const dateStr = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear().toString().substr(-2)}`;
-                const timeStr = `${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
-                input.value = `playlist_${dateStr}_${timeStr}`;
-            }
-        }
-        // Close menu
-        const dropdown = document.getElementById('player-menu-dropdown');
-        if (dropdown) dropdown.classList.remove('active');
-    },
-
-    hideSaveModal() {
-        const modal = document.getElementById('player-save-modal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    },
-
-    savePlaylist(filename) {
-        if (!filename) return;
-
-        const data = {
-            trackName: this.trackName,
-            playlist: this.playlist,
-            isRepeat: this.isRepeat
-        };
-
-        const json = JSON.stringify(data);
-        if (window.AndroidPlaylist) {
-            window.AndroidPlaylist.savePlaylist(filename, json);
-        } else {
-            UI.showToast('Функция недоступна в браузере');
-        }
-    },
-
-    openPlaylist() {
-        if (window.AndroidPlaylist) {
-            window.AndroidPlaylist.pickPlaylist();
-        } else {
-            Logger.error('AndroidPlaylist interface not available');
-            UI.showToast('Функция недоступна в браузере');
-        }
-        // Close menu
-        const dropdown = document.getElementById('player-menu-dropdown');
-        if (dropdown) dropdown.classList.remove('active');
-    },
-
-    handlePlaylistLoaded(json) {
-        try {
-            const data = JSON.parse(json);
-            if (data.playlist) {
-                this.playlist = data.playlist;
-                this.isRepeat = data.isRepeat || false;
-                
-                // Track name might be different now, but we don't necessarily have the file
-                // If the user has the track file loaded, we keep it, otherwise trackName is just a label
-                // For now, let's just clear the track if it doesn't match or keep it as is.
-                // Requirement said "Clear scene" clears playlist AND track.
-                // Open playlist restores playlist.
-                
-                this.renderPlaylist();
-                this.saveState();
-                
-                // Update Repeat UI
-                const btnRepeat = document.getElementById('player-menu-repeat');
-                if (btnRepeat) {
-                    if (this.isRepeat) btnRepeat.classList.add('active');
-                    else btnRepeat.classList.remove('active');
-                }
-
-                Logger.log('Playlist loaded and state saved');
-            }
-        } catch (err) {
-            Logger.error('Failed to parse playlist JSON:', err);
-            UI.showToast('Ошибка при загрузке файла');
-        }
-    }
 };
