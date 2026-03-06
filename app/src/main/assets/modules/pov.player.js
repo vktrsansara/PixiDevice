@@ -241,6 +241,8 @@ export const POVPlayer = {
                 const filenameInput = document.getElementById('player-save-filename');
                 if (filenameInput && filenameInput.value.trim() !== '') {
                     POVPlayer.savePlaylist(filenameInput.value.trim());
+                    POVPlayer.hideSaveModal();
+                    UI.showToast('Файл сохранен');
                 } else {
                     UI.showToast('Введите имя файла');
                 }
@@ -275,16 +277,6 @@ export const POVPlayer = {
                 }
             });
         }
-
-        window.addEventListener('playlist:save_result', (e) => {
-            const data = e.detail;
-            if (data && data.success) {
-                UI.showToast('Файл сохранен');
-            } else {
-                UI.showToast('Ошибка: ' + (data ? data.message : 'Unknown error'));
-            }
-            POVPlayer.hideSaveModal();
-        });
 
         window.addEventListener('playlist:loaded', (e) => {
             const { json } = e.detail;
