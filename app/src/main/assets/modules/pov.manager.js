@@ -46,6 +46,7 @@ export const POVManager = {
             }
         });
     },
+    
 
     setMasterIp(ip) {
         this.masterIp = ip;
