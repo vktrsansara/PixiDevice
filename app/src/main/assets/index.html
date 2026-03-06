@@ -138,7 +138,7 @@
         </div>
 
         <div class="player-controls-bar">
-          <button id="player-main-add" title="Добавить эффект" disabled>
+          <button id="player-main-add" title="Добавить эффект">
             <i class="fa-solid fa-plus"></i>
           </button>
           <button id="player-main-music" title="Открыть трек">
@@ -158,6 +158,18 @@
             <div class="player-dropdown-item" id="player-menu-clear">
               <i class="fa-solid fa-eraser"></i>
               <span>Очистить сцену</span>
+            </div>
+            <div class="player-dropdown-item" id="player-menu-repeat">
+              <i class="fa-solid fa-repeat"></i>
+              <span>Повтор</span>
+            </div>
+            <div class="player-dropdown-item" id="player-menu-save">
+              <i class="fa-regular fa-floppy-disk"></i>
+              <span>Сохр. плейлист</span>
+            </div>
+            <div class="player-dropdown-item" id="player-menu-open">
+              <i class="fa-regular fa-folder-open"></i>
+              <span>Откр. плейлист</span>
             </div>
           </div>
         </div>
@@ -193,9 +205,24 @@
             <select id="player-add-group-id"></select>
           </div>
 
-          <div class="checkbox-group modal-disable-effect">
-            <input type="checkbox" id="player-add-disable-effect" />
-            <label for="player-add-disable-effect">Выкл. эффекта</label>
+          <div class="modal-disable-effect" id="player-modal-disable-group">
+            <input type="checkbox" id="modal-disable-checkbox" />
+            <label for="modal-disable-checkbox">Выкл. эффекта</label>
+          </div>
+
+          <div
+            class="modal-time-offset"
+            id="player-modal-time-group"
+            style="display: none"
+          >
+            <label for="modal-time-input">Начать с (сек):</label>
+            <input
+              type="number"
+              id="modal-time-input"
+              value="10"
+              step="0.5"
+              min="0"
+            />
           </div>
 
           <div class="modal-actions">
@@ -371,6 +398,25 @@
 
     <div id="upload-progress-container" class="upload-progress-container">
       <div id="upload-progress-bar" class="upload-progress-bar"></div>
+    </div>
+
+    <!-- Save Playlist Modal -->
+    <div id="player-save-modal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <h3>Сохр. плейлист</h3>
+        <p>Введите имя файла для плейлиста:</p>
+        <div class="modal-input-group">
+          <input
+            type="text"
+            id="player-save-filename"
+            placeholder="Имя файла"
+          />
+        </div>
+        <div class="modal-actions">
+          <button id="player-save-cancel" class="cancel-btn">Отмена</button>
+          <button id="player-save-confirm" class="save-btn">Сохранить</button>
+        </div>
+      </div>
     </div>
 
     <!-- Custom Modal Overlay -->

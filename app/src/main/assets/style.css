@@ -1078,6 +1078,60 @@ footer {
     cursor: pointer;
 }
 
+.modal-time-offset {
+    margin: 15px 0;
+    text-align: left;
+    padding: 10px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.modal-time-offset label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--inactive-color);
+    margin-bottom: 5px;
+}
+
+.modal-time-offset input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--accent-color);
+    font-size: 1.2rem;
+    font-weight: bold;
+    font-family: monospace;
+    padding: 5px 0;
+    outline: none;
+    text-align: center;
+}
+
+.modal-time-offset input:focus {
+    border-color: var(--accent-color);
+}
+
+.modal-input-group {
+    margin: 20px 0;
+}
+
+.modal-input-group input {
+    width: 100%;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 15px;
+    color: var(--fg-color);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.modal-input-group input:focus {
+    border-color: var(--accent-color);
+}
+
 .playlist-preview {
     width: 70px;
     height: 50px;
@@ -1183,7 +1237,7 @@ footer {
 /* Player Dropdown Menu */
 .player-dropdown-menu {
     position: absolute;
-    bottom: 80px;
+    bottom: 144px;
     right: 20px;
     background-color: var(--header-bg);
     border: 1px solid var(--border-color);
@@ -1212,6 +1266,20 @@ footer {
 
 .player-dropdown-item:active {
     background-color: var(--bg-color);
+}
+
+.player-dropdown-item.active {
+    background-color: rgba(122, 162, 247, 0.15);
+}
+
+.player-dropdown-item.active i {
+    color: var(--accent-color);
+    text-shadow: 0 0 10px rgba(122, 162, 247, 0.5);
+}
+
+.player-dropdown-item.active span {
+    color: var(--accent-color);
+    font-weight: 700;
 }
 
 .player-dropdown-item i {

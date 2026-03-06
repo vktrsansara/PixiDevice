@@ -14,6 +14,10 @@ export const POVPlayer = {
     triggeredEffects: new Set(), // Set of item.id already triggered for current playback
     syncTimer: null,
     lastTriggeredEffect: null, // Stores { name, groupId } of the last effect played
+    isRepeat: false,
+    virtualCurrentTime: 0,
+    virtualTimer: null,
+    virtualDuration: 0,
 
     init() {
         Logger.log('POVPlayer initialized');
@@ -29,7 +33,8 @@ export const POVPlayer = {
     saveState() {
         const state = {
             playlist: this.playlist,
-            trackName: this.trackName || null
+            trackName: this.trackName || null,
+            isRepeat: this.isRepeat
         };
         localStorage.setItem('pov_player_state', JSON.stringify(state));
     },
@@ -41,6 +46,14 @@ export const POVPlayer = {
                 const state = JSON.parse(data);
                 this.playlist = state.playlist || [];
                 this.trackName = state.trackName || null;
+                this.isRepeat = state.isRepeat || false;
+
+                // Update Repeat UI highlight
+                const btnRepeat = document.getElementById('player-menu-repeat');
+                if (btnRepeat) {
+                    if (this.isRepeat) btnRepeat.classList.add('active');
+                    else btnRepeat.classList.remove('active');
+                }
                 
                 if (this.trackName) {
                     const displayTitle = this.trackName.length > 20 
@@ -55,7 +68,7 @@ export const POVPlayer = {
                     const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
                     if (playerNav) playerNav.setAttribute('data-title', displayTitle);
 
-                    // Enable Add button
+                    // Enable Add button (Always enabled now)
                     const btnAdd = document.getElementById('player-main-add');
                     if (btnAdd) btnAdd.disabled = false;
                     
@@ -107,6 +120,7 @@ export const POVPlayer = {
         const btnModalAdd = document.getElementById('player-modal-add');
         
         if (btnAdd) {
+            btnAdd.disabled = false;
             btnAdd.addEventListener('click', () => {
                 this.showAddModal();
             });
@@ -193,6 +207,46 @@ export const POVPlayer = {
             });
         }
 
+        const btnRepeat = document.getElementById('player-menu-repeat');
+        if (btnRepeat) {
+            btnRepeat.addEventListener('click', () => {
+                this.toggleRepeat();
+            });
+        }
+
+        const btnSaveMenu = document.getElementById('player-menu-save');
+        if (btnSaveMenu) {
+            btnSaveMenu.addEventListener('click', () => {
+                this.showSaveModal();
+            });
+        }
+
+        const btnOpenMenu = document.getElementById('player-menu-open');
+        if (btnOpenMenu) {
+            btnOpenMenu.addEventListener('click', () => {
+                this.openPlaylist();
+            });
+        }
+
+        const btnSaveCancel = document.getElementById('player-save-cancel');
+        if (btnSaveCancel) {
+            btnSaveCancel.addEventListener('click', () => {
+                this.hideSaveModal();
+            });
+        }
+
+        const btnSaveConfirm = document.getElementById('player-save-confirm');
+        if (btnSaveConfirm) {
+            btnSaveConfirm.addEventListener('click', () => {
+                const filenameInput = document.getElementById('player-save-filename');
+                if (filenameInput && filenameInput.value.trim() !== '') {
+                    POVPlayer.savePlaylist(filenameInput.value.trim());
+                } else {
+                    UI.showToast('Введите имя файла');
+                }
+            });
+        }
+
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('player-menu-dropdown');
@@ -211,12 +265,35 @@ export const POVPlayer = {
             });
 
             this.audio.addEventListener('ended', () => {
-                this.stopPlayback();
+                if (this.isRepeat) {
+                    Logger.log('POVPlayer: Repeat active, restarting track...');
+                    this.triggeredEffects.clear();
+                    this.audio.currentTime = 0;
+                    this.audio.play();
+                } else {
+                    this.stopPlayback();
+                }
             });
-
-            // Initial reset
-            this.updateProgressBar();
         }
+
+        window.addEventListener('playlist:save_result', (e) => {
+            const data = e.detail;
+            if (data && data.success) {
+                UI.showToast('Файл сохранен');
+            } else {
+                UI.showToast('Ошибка: ' + (data ? data.message : 'Unknown error'));
+            }
+            POVPlayer.hideSaveModal();
+        });
+
+        window.addEventListener('playlist:loaded', (e) => {
+            const { json } = e.detail;
+            UI.showToast('Плейлист открыт');
+            POVPlayer.handlePlaylistLoaded(json);
+        });
+
+        // Initial reset
+        this.updateProgressBar();
     },
 
     onAudioFileSelected(name, url) {
@@ -314,30 +391,44 @@ export const POVPlayer = {
 
     updateProgressBar() {
         const fill = document.getElementById('player-v-progress-fill');
-        const tooltip = document.getElementById('player-v-time-tooltip');
-        
-        if (!fill || !this.audio || isNaN(this.audio.duration)) {
-            if (fill) fill.style.height = '0%';
-            if (tooltip) tooltip.textContent = '00:00';
-            return;
+        if (!fill) return;
+
+        let percent = 0;
+        let currentTime = 0;
+        let duration = 0;
+
+        if (this.trackName && this.audio && !isNaN(this.audio.duration)) {
+            currentTime = this.audio.currentTime;
+            duration = this.audio.duration;
+            percent = (currentTime / duration) * 100;
+        } else if (!this.trackName && this.virtualDuration > 0) {
+            currentTime = this.virtualCurrentTime;
+            duration = this.virtualDuration;
+            percent = (currentTime / duration) * 100;
         }
 
-        const percent = (this.audio.currentTime / this.audio.duration) * 100;
         fill.style.height = `${percent}%`;
 
-        // Update tooltip text
+        // Update tooltip
+        const tooltip = document.getElementById('player-v-time-tooltip');
         if (tooltip) {
-            tooltip.textContent = this.formatTime(this.audio.currentTime);
+            tooltip.textContent = this.formatTime(currentTime);
+            // Move tooltip with thumb
+            tooltip.style.bottom = `${percent}%`;
         }
-
-        // Check for effects to trigger
-        this.checkEffectsToTrigger();
     },
 
     checkEffectsToTrigger() {
-        if (!this.isPlaying || !this.audio || isNaN(this.audio.duration)) return;
+        if (!this.isPlaying) return;
 
-        const currentTime = this.audio.currentTime;
+        let currentTime;
+        if (this.trackName && this.audio && !isNaN(this.audio.duration)) {
+            currentTime = this.audio.currentTime;
+        } else if (!this.trackName && this.virtualDuration > 0) {
+            currentTime = this.virtualCurrentTime;
+        } else {
+            return; // No valid playback source
+        }
         
         this.playlist.forEach((item) => {
             if (this.triggeredEffects.has(item.id)) return;
@@ -438,6 +529,13 @@ export const POVPlayer = {
     showAddModal(skipReset = false) {
         const modal = document.getElementById('player-add-modal');
         if (modal) modal.style.display = 'flex';
+        
+        // Toggle time offset input based on track presence
+        const timeGroup = document.getElementById('player-modal-time-group');
+        if (timeGroup) {
+            timeGroup.style.display = (this.trackName ? 'none' : 'block');
+        }
+
         if (!skipReset) this.resetModalState();
     },
 
@@ -456,7 +554,11 @@ export const POVPlayer = {
         if (field) field.classList.remove('has-preview');
         if (preview) preview.style.display = 'none';
         if (btnAdd) btnAdd.disabled = true;
+        
         if (chkDisable) chkDisable.checked = false;
+
+        const timeInput = document.getElementById('modal-time-input');
+        if (timeInput) timeInput.value = (this.playlist.length === 0 ? "10" : "30");
     },
 
     startImageSelection() {
@@ -507,7 +609,22 @@ export const POVPlayer = {
 
         if (!this.selectedImage && !isPause) return;
         
-        const timestamp = this.audio ? this.audio.currentTime : 0;
+        let timestamp = 0;
+        if (this.trackName && this.audio) {
+            timestamp = this.audio.currentTime;
+        } else {
+            // Calculate cumulative time based on manual offset
+            const timeInput = document.getElementById('modal-time-input');
+            const offset = timeInput ? parseFloat(timeInput.value) || 0 : 0;
+            
+            let lastTimestamp = 0;
+            if (this.playlist.length > 0) {
+                // Get the timestamp of the last added item
+                lastTimestamp = this.playlist[this.playlist.length - 1].timestamp;
+            }
+            timestamp = lastTimestamp + offset;
+        }
+
         const groupEl = document.getElementById('player-add-group-id');
         const groupId = groupEl ? parseInt(groupEl.value) : 0;
         
@@ -534,7 +651,7 @@ export const POVPlayer = {
         if (!container) return;
 
         if (this.playlist.length === 0) {
-            container.innerHTML = '<div class="empty-msg">«Плейлист пуст. Прежде чем добавлять эффект, выберите трек. Нажмите +, чтобы добавить эффект»</div>';
+            container.innerHTML = '<div class="empty-msg">Плейлист пуст. Нажмите +, чтобы добавить эффект</div>';
             return;
         }
 
@@ -576,47 +693,89 @@ export const POVPlayer = {
     },
 
     togglePlayback() {
-        if (!this.audio.src) {
-            UI.showToast('Сначала выберите звуковой трек');
+        if (this.playlist.length === 0 && !this.trackName) {
+            UI.showToast('Плейлист пуст');
             return;
         }
 
-        this.isPlaying = !this.isPlaying;
-        
         if (this.isPlaying) {
-            this.audio.play().then(() => {
-                this.startSyncLoop();
-                // Resume animation on all devices
-                this.setGlobalPlayback(true, 0);
-            }).catch(err => {
-                Logger.error('Playback failed:', err);
-                this.isPlaying = false;
-                this.updateIcons();
-            });
+            this.stopPlayback();
         } else {
-            this.audio.pause();
-            // Pause animation on all devices
-            this.setGlobalPlayback(false, 0);
-        }
+            this.isPlaying = true;
+            this.updateIcons();
+            this.triggeredEffects.clear();
 
-        Logger.log(`Player: ${this.isPlaying ? 'Play' : 'Pause'}`);
-        this.updateIcons();
+            if (this.trackName && this.audio) {
+                this.audio.play();
+                this.startSyncLoop();
+            } else {
+                // Start Virtual Playback
+                Logger.log('POVPlayer: Starting virtual playback...');
+                
+                // Calculate virtual duration from the last element
+                if (this.playlist.length > 0) {
+                    this.virtualDuration = this.playlist[this.playlist.length - 1].timestamp + 2; // +2s buffer
+                } else {
+                    this.virtualDuration = 10;
+                }
+                
+                this.virtualCurrentTime = 0;
+                this.startVirtualLoop();
+            }
+            
+            this.setGlobalPlayback(true, 0, true);
+        }
+    },
+
+    startVirtualLoop() {
+        if (this.virtualTimer) clearInterval(this.virtualTimer);
+        
+        const startTime = Date.now();
+        this.virtualTimer = setInterval(() => {
+            if (!this.isPlaying) {
+                clearInterval(this.virtualTimer);
+                this.virtualTimer = null;
+                return;
+            }
+
+            const elapsed = (Date.now() - startTime) / 1000;
+            this.virtualCurrentTime = elapsed;
+            
+            this.updateProgressBar();
+            this.checkEffectsToTrigger();
+
+            if (this.virtualCurrentTime >= this.virtualDuration) {
+                if (this.isRepeat) {
+                    this.virtualCurrentTime = 0;
+                    this.triggeredEffects.clear();
+                    // Just restart the loop logic by clearing and restarting if needed
+                    // but simplest is to keep the timer and reset startTime
+                    this.togglePlayback(); // Stop
+                    this.togglePlayback(); // Start again
+                } else {
+                    this.stopPlayback();
+                }
+            }
+        }, 100);
     },
 
     stopPlayback() {
         this.isPlaying = false;
-        if (this.audio) {
+        if (this.trackName && this.audio) {
             this.audio.pause();
             this.audio.currentTime = 0;
         }
-        this.triggeredEffects.clear();
-        this.lastTriggeredEffect = null;
+        
+        if (this.virtualTimer) {
+            clearInterval(this.virtualTimer);
+            this.virtualTimer = null;
+        }
+
         if (this.syncTimer) {
             cancelAnimationFrame(this.syncTimer);
             this.syncTimer = null;
         }
         
-        // Stop POV animation and clear memory on all devices
         this.setGlobalPlayback(false, 0, true);
         
         Logger.log('Player: Stop');
@@ -658,9 +817,9 @@ export const POVPlayer = {
         const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
         if (playerNav) playerNav.setAttribute('data-title', 'Плеер');
         
-        // Disable Add button (requires track)
+        // Add button remains enabled
         const btnAdd = document.getElementById('player-main-add');
-        if (btnAdd) btnAdd.disabled = true;
+        if (btnAdd) btnAdd.disabled = false;
         
         // Re-render empty playlist
         this.renderPlaylist();
@@ -676,5 +835,108 @@ export const POVPlayer = {
         if (dropdown) dropdown.classList.remove('active');
         
         UI.showToast('Сцена очищена');
+    },
+
+    toggleRepeat() {
+        this.isRepeat = !this.isRepeat;
+        Logger.log(`POVPlayer: Repeat set to ${this.isRepeat}`);
+        
+        const btnRepeat = document.getElementById('player-menu-repeat');
+        if (btnRepeat) {
+            if (this.isRepeat) btnRepeat.classList.add('active');
+            else btnRepeat.classList.remove('active');
+        }
+        
+        this.saveState();
+        UI.showToast(this.isRepeat ? 'Повтор включен' : 'Повтор выключен');
+        
+        // Close menu after selection
+        const dropdown = document.getElementById('player-menu-dropdown');
+        if (dropdown) dropdown.classList.remove('active');
+    },
+
+    showSaveModal() {
+        const modal = document.getElementById('player-save-modal');
+        const input = document.getElementById('player-save-filename');
+        if (modal) {
+            modal.style.display = 'flex';
+            if (input) {
+                const now = new Date();
+                const pad = (n) => n.toString().padStart(2, '0');
+                const dateStr = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear().toString().substr(-2)}`;
+                const timeStr = `${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+                input.value = `playlist_${dateStr}_${timeStr}`;
+            }
+        }
+        // Close menu
+        const dropdown = document.getElementById('player-menu-dropdown');
+        if (dropdown) dropdown.classList.remove('active');
+    },
+
+    hideSaveModal() {
+        const modal = document.getElementById('player-save-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    },
+
+    savePlaylist(filename) {
+        if (!filename) return;
+
+        const data = {
+            trackName: this.trackName,
+            playlist: this.playlist,
+            isRepeat: this.isRepeat
+        };
+
+        const json = JSON.stringify(data);
+        if (window.AndroidPlaylist) {
+            window.AndroidPlaylist.savePlaylist(filename, json);
+        } else {
+            UI.showToast('Функция недоступна в браузере');
+        }
+    },
+
+    openPlaylist() {
+        if (window.AndroidPlaylist) {
+            window.AndroidPlaylist.pickPlaylist();
+        } else {
+            Logger.error('AndroidPlaylist interface not available');
+            UI.showToast('Функция недоступна в браузере');
+        }
+        // Close menu
+        const dropdown = document.getElementById('player-menu-dropdown');
+        if (dropdown) dropdown.classList.remove('active');
+    },
+
+    handlePlaylistLoaded(json) {
+        try {
+            const data = JSON.parse(json);
+            if (data.playlist) {
+                this.playlist = data.playlist;
+                this.isRepeat = data.isRepeat || false;
+                
+                // Track name might be different now, but we don't necessarily have the file
+                // If the user has the track file loaded, we keep it, otherwise trackName is just a label
+                // For now, let's just clear the track if it doesn't match or keep it as is.
+                // Requirement said "Clear scene" clears playlist AND track.
+                // Open playlist restores playlist.
+                
+                this.renderPlaylist();
+                this.saveState();
+                
+                // Update Repeat UI
+                const btnRepeat = document.getElementById('player-menu-repeat');
+                if (btnRepeat) {
+                    if (this.isRepeat) btnRepeat.classList.add('active');
+                    else btnRepeat.classList.remove('active');
+                }
+
+                Logger.log('Playlist loaded and state saved');
+            }
+        } catch (err) {
+            Logger.error('Failed to parse playlist JSON:', err);
+            UI.showToast('Ошибка при загрузке файла');
+        }
     }
 };

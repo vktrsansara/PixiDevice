@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private NsdHelper nsdHelper;
     private ImageManager imageManager;
     private MusicManager musicManager;
+    private PlaylistManager playlistManager;
     private ValueCallback<Uri[]> filePathCallback;
     private static final int FILE_CHOOSER_RESULT_CODE = 1;
 
@@ -82,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
         musicManager = new MusicManager(this, myWebView);
         myWebView.addJavascriptInterface(musicManager, "AndroidMusic");
 
+        // Initialize Playlist Manager and inject JS Interface
+        playlistManager = new PlaylistManager(this, myWebView);
+        myWebView.addJavascriptInterface(playlistManager, "AndroidPlaylist");
+
         // Hide system bars for immersive fullscreen
         WindowInsetsControllerCompat windowInsetsController =
                 WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
@@ -110,6 +115,9 @@ public class MainActivity extends AppCompatActivity {
         }
         if (musicManager != null) {
             musicManager.handleResult(requestCode, resultCode, data);
+        }
+        if (playlistManager != null) {
+            playlistManager.handleResult(requestCode, resultCode, data);
         }
     }
 
