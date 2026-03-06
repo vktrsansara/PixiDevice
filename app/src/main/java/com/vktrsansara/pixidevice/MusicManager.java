@@ -2,7 +2,9 @@ package com.vktrsansara.pixidevice;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.util.Base64;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -80,14 +82,27 @@ public class MusicManager {
     }
 
     private String getFileName(Uri uri) {
-        String path = uri.getPath();
-        if (path != null) {
-            int cut = path.lastIndexOf('/');
-            if (cut != -1) {
-                return path.substring(cut + 1);
+        String result = null;
+        if (uri.getScheme().equals("content")) {
+            try (Cursor cursor = activity.getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (index != -1) {
+                        result = cursor.getString(index);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error getting filename from content URI", e);
             }
         }
-        return "track.mp3";
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result.lastIndexOf('/');
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
+        return (result != null && !result.isEmpty()) ? result : "track.mp3";
     }
 
     private void notifyTrackLoaded(String fileName) {
