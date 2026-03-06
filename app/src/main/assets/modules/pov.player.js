@@ -179,11 +179,30 @@ export const POVPlayer = {
         }
 
         if (btnMenu) {
-            btnMenu.addEventListener('click', () => {
-                Logger.log('Player: Menu clicked');
-                UI.showToast('Меню (в разработке)');
+            btnMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const dropdown = document.getElementById('player-menu-dropdown');
+                if (dropdown) dropdown.classList.toggle('active');
             });
         }
+
+        const btnClear = document.getElementById('player-menu-clear');
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                this.clearScene();
+            });
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('player-menu-dropdown');
+            const btnMenu = document.getElementById('player-main-menu');
+            if (dropdown && dropdown.classList.contains('active')) {
+                if (!dropdown.contains(e.target) && !btnMenu.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            }
+        });
 
         // Handle audio events
         if (this.audio) {
@@ -615,5 +634,47 @@ export const POVPlayer = {
                 icon.classList.add('fa-circle-play');
             }
         }
+    },
+
+    clearScene() {
+        Logger.log('POVPlayer: Clearing scene...');
+        
+        // 1. Stop playback
+        this.stopPlayback();
+        
+        // 2. Clear data
+        this.playlist = [];
+        this.trackName = null;
+        this.audio.src = '';
+        this.triggeredEffects.clear();
+        this.lastTriggeredEffect = null;
+        
+        // 3. Reset UI
+        // Reset header title
+        const pageTitle = document.getElementById('page-title');
+        if (pageTitle) pageTitle.textContent = 'Плеер';
+        
+        // Reset nav item attribute
+        const playerNav = document.querySelector('.nav-item[data-tab="tab-player"]');
+        if (playerNav) playerNav.setAttribute('data-title', 'Плеер');
+        
+        // Disable Add button (requires track)
+        const btnAdd = document.getElementById('player-main-add');
+        if (btnAdd) btnAdd.disabled = true;
+        
+        // Re-render empty playlist
+        this.renderPlaylist();
+        
+        // Reset progress bar
+        this.updateProgressBar();
+        
+        // 4. Save state
+        this.saveState();
+        
+        // 5. Close menu
+        const dropdown = document.getElementById('player-menu-dropdown');
+        if (dropdown) dropdown.classList.remove('active');
+        
+        UI.showToast('Сцена очищена');
     }
 };

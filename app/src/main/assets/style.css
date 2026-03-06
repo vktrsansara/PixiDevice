@@ -1180,6 +1180,64 @@ footer {
     background-color: black;
 }
 
+/* Player Dropdown Menu */
+.player-dropdown-menu {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    background-color: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 8px 0;
+    min-width: 200px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    display: none;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    animation: slideUpFade 0.2s ease-out;
+}
+
+.player-dropdown-menu.active {
+    display: block;
+}
+
+.player-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.player-dropdown-item:active {
+    background-color: var(--bg-color);
+}
+
+.player-dropdown-item i {
+    font-size: 1.1rem;
+    color: var(--accent-color);
+    width: 20px;
+    text-align: center;
+}
+
+.player-dropdown-item span {
+    font-size: 0.95rem;
+    color: var(--fg-color);
+    font-weight: 500;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @keyframes rotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
