@@ -300,20 +300,26 @@ export const POVPlayer = {
             
             // Temporary disable transition for smooth drag
             const fill = document.getElementById('player-v-progress-fill');
+            const thumb = document.getElementById('player-v-progress-thumb');
+            const tooltip = document.getElementById('player-v-time-tooltip');
             if (fill) fill.style.transition = 'none';
+            if (thumb) thumb.style.transition = 'none';
+            if (tooltip) tooltip.style.transition = 'none';
 
             // Show tooltip
-            const tooltip = document.getElementById('player-v-time-tooltip');
             if (tooltip) tooltip.classList.add('visible');
         };
 
         const stopDragging = () => {
             this.isDraggingProgress = false;
             const fill = document.getElementById('player-v-progress-fill');
+            const thumb = document.getElementById('player-v-progress-thumb');
+            const tooltip = document.getElementById('player-v-time-tooltip');
             if (fill) fill.style.transition = 'height 0.1s linear';
+            if (thumb) thumb.style.transition = 'bottom 0.1s linear';
+            if (tooltip) tooltip.style.transition = 'opacity 0.4s ease, bottom 0.1s linear';
 
             // Hide tooltip (will fade out due to CSS transition)
-            const tooltip = document.getElementById('player-v-time-tooltip');
             if (tooltip) tooltip.classList.remove('visible');
             
             // Recalculate which effects should be considered "already triggered" based on new position
@@ -361,11 +367,16 @@ export const POVPlayer = {
 
         fill.style.height = `${percent}%`;
 
-        // Update tooltip
+        // Update thumb and tooltip
+        const thumb = document.getElementById('player-v-progress-thumb');
         const tooltip = document.getElementById('player-v-time-tooltip');
+        
+        if (thumb) {
+            thumb.style.bottom = `${percent}%`;
+        }
+        
         if (tooltip) {
             tooltip.textContent = this.formatTime(currentTime);
-            // Move tooltip with thumb
             tooltip.style.bottom = `${percent}%`;
         }
     },
